@@ -3,6 +3,6 @@
     <item
         android:width="66dp"
         android:height="66dp"
-        android:drawable="@drawable/ic_reels_logo"
+        android:drawable="@drawable/reels_studio_logo_1789019489864"
         android:gravity="center" />
 </layer-list>

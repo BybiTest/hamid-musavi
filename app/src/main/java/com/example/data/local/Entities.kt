@@ -33,3 +33,13 @@ data class VipStateEntity(
     val expirationDateString: String = "نامحدود",
     val temporaryUnlockedHooks: String = "" // comma-separated hook IDs unlocked by rewarded ads
 )
+
+@Entity(tableName = "app_settings")
+data class AppSettingsEntity(
+    @PrimaryKey val id: Int = 1,
+    val isDarkMode: Boolean = true,
+    val fontScale: Float = 1.0f, // 0.85f, 1.0f, 1.15f, 1.3f
+    val isRealAdsEnabled: Boolean = true,
+    val customApiKey: String = ""
+)
+

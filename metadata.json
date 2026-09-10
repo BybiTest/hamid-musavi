@@ -1,6 +1,6 @@
 {
-  "name": "Remix Reels Studio",
-  "description": "دستیار جامع تولید محتوا، قلاب‌های وایرال ریلز، سناریونویسی و برنامه‌ریزی پست با سیستم اشتراک VIP و تبلیغات",
+  "name": "ریمیکس استودیوی ریلز",
+  "description": "دستیار جامع تولید محتوا، استودیوی ساخت کاور و تامبنیل ریلز و شورتز، قلاب‌های وایرال، سناریونویسی هوش مصنوعی و تنظیمات",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

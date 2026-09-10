@@ -11,26 +11,23 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Diamond
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -46,15 +43,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.data.model.HookItem
-import com.example.ui.theme.DarkBg
 import com.example.ui.theme.ElectricPurple
 import com.example.ui.theme.SunsetOrange
-import com.example.ui.theme.SurfaceCard
-import com.example.ui.theme.SurfaceCardBorder
-import com.example.ui.theme.SurfaceCardElevated
-import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
 import com.example.ui.theme.VipGold
 import com.example.ui.theme.VipGoldDark
 import com.example.ui.viewmodel.ReelsViewModel
@@ -62,16 +52,17 @@ import com.example.ui.viewmodel.ReelsViewModel
 @Composable
 fun AdBannerView(
     isVip: Boolean,
+    isAdsEnabled: Boolean = true,
     onUpgradeClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    if (isVip) return
+    if (isVip || !isAdsEnabled) return
 
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .border(1.dp, SurfaceCardBorder, RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
-        color = SurfaceCardElevated,
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
+        color = MaterialTheme.colorScheme.surfaceVariant,
         tonalElevation = 2.dp
     ) {
         Row(
@@ -105,14 +96,14 @@ fun AdBannerView(
                 Column {
                     Text(
                         text = "اسپانسر تپسل: رشد فالوور واقعی با هوش مصنوعی",
-                        color = TextPrimary,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1
                     )
                     Text(
                         text = "برای حذف همیشگی تبلیغات، اشتراک VIP را فعال کنید",
-                        color = TextMuted,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                         fontSize = 10.sp,
                         maxLines = 1
                     )
@@ -158,8 +149,8 @@ fun RewardedAdDialog(
                 .fillMaxWidth()
                 .padding(16.dp),
             shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = SurfaceCard),
-            border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceCardBorder)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
         ) {
             Column(
                 modifier = Modifier
@@ -188,7 +179,7 @@ fun RewardedAdDialog(
 
                     Text(
                         text = "باز کردن رایگان قلاب وایرال",
-                        color = TextPrimary,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center
@@ -198,7 +189,7 @@ fun RewardedAdDialog(
 
                     Text(
                         text = "این قلاب جزو محتوای ویژه است. برای استفاده رایگان، کافیست یک ویدیوی کوتاه ۵ ثانیه‌ای تماشا کنید:",
-                        color = TextSecondary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 13.sp,
                         textAlign = TextAlign.Center,
                         lineHeight = 20.sp
@@ -208,7 +199,7 @@ fun RewardedAdDialog(
 
                     Card(
                         shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = SurfaceCardElevated),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
@@ -243,7 +234,7 @@ fun RewardedAdDialog(
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("انصراف", color = TextSecondary)
+                        Text("انصراف", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 } else {
                     // Video playback simulation
@@ -265,14 +256,14 @@ fun RewardedAdDialog(
                             Spacer(modifier = Modifier.height(10.dp))
                             Text(
                                 text = "اسپانسر تپسل: آکادمی اینستاگرام مارکتینگ",
-                                color = TextPrimary,
+                                color = Color.White,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
                                 text = "در حال دریافت پاداش باز شدن محتوا...",
-                                color = TextSecondary,
+                                color = Color.LightGray,
                                 fontSize = 12.sp
                             )
                         }
@@ -304,14 +295,14 @@ fun RewardedAdDialog(
                             .height(6.dp)
                             .clip(RoundedCornerShape(3.dp)),
                         color = SunsetOrange,
-                        trackColor = SurfaceCardBorder
+                        trackColor = MaterialTheme.colorScheme.outline
                     )
 
                     Spacer(modifier = Modifier.height(10.dp))
 
                     Text(
                         text = "لطفاً تا پایان ویدیو شکیبا باشید...",
-                        color = TextMuted,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 11.sp
                     )
                 }
@@ -334,7 +325,7 @@ fun VipCheckoutDialog(
                 .fillMaxWidth()
                 .padding(12.dp),
             shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = SurfaceCard),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             border = androidx.compose.foundation.BorderStroke(1.5.dp, VipGold)
         ) {
             Column(
@@ -363,7 +354,7 @@ fun VipCheckoutDialog(
 
                 Text(
                     text = "فعال‌سازی اشتراک ${plan.title}",
-                    color = TextPrimary,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
@@ -373,7 +364,7 @@ fun VipCheckoutDialog(
 
                 Text(
                     text = "اتصال به درگاه امن پرداخت کافه‌بازار / مایکت",
-                    color = TextSecondary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 12.sp,
                     textAlign = TextAlign.Center
                 )
@@ -383,15 +374,15 @@ fun VipCheckoutDialog(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = SurfaceCardElevated),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceCardBorder)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
                     Column(modifier = Modifier.padding(14.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("مبلغ قابل پرداخت:", color = TextSecondary, fontSize = 13.sp)
+                            Text("مبلغ قابل پرداخت:", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
                             Text(plan.price, color = VipGold, fontSize = 15.sp, fontWeight = FontWeight.Bold)
                         }
 
@@ -401,8 +392,8 @@ fun VipCheckoutDialog(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("مدت اعتبار:", color = TextSecondary, fontSize = 13.sp)
-                            Text("${plan.days} روز دسترسی نامحدود", color = TextPrimary, fontSize = 13.sp)
+                            Text("مدت اعتبار:", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+                            Text("${plan.days} روز دسترسی نامحدود", color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp)
                         }
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -411,7 +402,7 @@ fun VipCheckoutDialog(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("حذف تبلیغات:", color = TextSecondary, fontSize = 13.sp)
+                            Text("حذف تبلیغات:", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
                             Text("کامل و دائمی", color = Color(0xFF10B981), fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         }
                     }
@@ -433,7 +424,7 @@ fun VipCheckoutDialog(
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "دارای ضمانت بازگشت وجه تا ۷ روز در صورت عدم رضایت",
-                        color = TextMuted,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                         fontSize = 10.sp
                     )
                 }
@@ -459,7 +450,7 @@ fun VipCheckoutDialog(
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth().height(44.dp)
                 ) {
-                    Text("انصراف", color = TextSecondary)
+                    Text("انصراف", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }

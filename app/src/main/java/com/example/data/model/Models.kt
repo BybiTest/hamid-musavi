@@ -55,7 +55,32 @@ data class EngagementResult(
 enum class AppTab(val titleFa: String) {
     HOOKS("قلاب‌ها"),
     SCRIPTS("سناریوساز"),
+    THUMBNAIL_STUDIO("کاور ساز"),
+    AI_ASSISTANT("هوش‌مصنوعی"),
+    TOOLS("ابزارها و تنظیمات"),
     PLANNER("تقویم ۳۰ روزه"),
-    CALCULATOR("محاسبه تعامل"),
-    VIP("اشتراک VIP")
+    CALCULATOR("نرخ تعامل"),
+    VIP("الماس VIP"),
+    SETTINGS("تنظیمات")
 }
+
+enum class CoverCategory(val titleFa: String) {
+    ALL("همه قالب‌ها"),
+    TECH("تکنولوژی و هوش مصنوعی"),
+    FINANCE("مالی، بیزینس و موفقیت"),
+    VIRAL("وایرال، جنجالی و ترند"),
+    LIFESTYLE("بلاگری و روزمره")
+}
+
+data class CoverTemplate(
+    val id: String,
+    val title: String,
+    val category: CoverCategory,
+    val drawableResId: Int,
+    val defaultMainHeadline: String,
+    val defaultSubHeadline: String,
+    val badgeText: String,
+    val accentColorHex: Long = 0xFFFF5E3A,
+    val textColorHex: Long = 0xFFFFFFFF,
+    val isVipOnly: Boolean = false
+)

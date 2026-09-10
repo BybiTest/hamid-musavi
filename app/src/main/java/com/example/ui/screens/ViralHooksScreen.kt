@@ -3,9 +3,7 @@ package com.example.ui.screens
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,12 +20,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Diamond
-import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
@@ -40,10 +35,9 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -55,7 +49,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -65,15 +58,8 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.AppTab
 import com.example.data.model.HookCategory
 import com.example.data.model.HookItem
-import com.example.ui.theme.DarkBg
 import com.example.ui.theme.ElectricPurple
 import com.example.ui.theme.SunsetOrange
-import com.example.ui.theme.SurfaceCard
-import com.example.ui.theme.SurfaceCardBorder
-import com.example.ui.theme.SurfaceCardElevated
-import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
 import com.example.ui.theme.VipGold
 import com.example.ui.theme.VipGoldDark
 import com.example.ui.viewmodel.ReelsViewModel
@@ -106,7 +92,7 @@ fun ViralHooksScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(DarkBg)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         // Top Bar & VIP Status pill
         Row(
@@ -119,13 +105,13 @@ fun ViralHooksScreen(
             Column {
                 Text(
                     text = "قلاب‌های وایرال ۳ ثانیه‌ای",
-                    color = TextPrimary,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
                     text = "جملات شوکه‌کننده برای توقف اسکرول مخاطب",
-                    color = TextSecondary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 12.sp
                 )
             }
@@ -196,24 +182,30 @@ fun ViralHooksScreen(
                 modifier = Modifier
                     .weight(1f)
                     .height(52.dp),
-                placeholder = { Text("جستجو در قلاب‌ها و کلمات کلیدی...", fontSize = 12.sp, color = TextMuted) },
+                placeholder = {
+                    Text(
+                        "جستجو در قلاب‌ها و کلمات کلیدی...",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    )
+                },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Search,
                         contentDescription = null,
-                        tint = TextSecondary,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
                 },
                 singleLine = true,
                 shape = RoundedCornerShape(14.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = SurfaceCard,
-                    unfocusedContainerColor = SurfaceCard,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                     focusedBorderColor = SunsetOrange,
-                    unfocusedBorderColor = SurfaceCardBorder,
-                    focusedTextColor = TextPrimary,
-                    unfocusedTextColor = TextPrimary
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                 )
             )
 
@@ -224,17 +216,17 @@ fun ViralHooksScreen(
                     .size(52.dp)
                     .clip(RoundedCornerShape(14.dp))
                     .clickable { viewModel.toggleFavoritesFilter() },
-                color = if (showOnlyFavorites) SunsetOrange else SurfaceCard,
+                color = if (showOnlyFavorites) SunsetOrange else MaterialTheme.colorScheme.surface,
                 border = androidx.compose.foundation.BorderStroke(
                     1.dp,
-                    if (showOnlyFavorites) SunsetOrange else SurfaceCardBorder
+                    if (showOnlyFavorites) SunsetOrange else MaterialTheme.colorScheme.outline
                 )
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = if (showOnlyFavorites) Icons.Default.Star else Icons.Default.StarBorder,
                         contentDescription = "علاقه‌مندی‌ها",
-                        tint = if (showOnlyFavorites) Color.White else TextSecondary
+                        tint = if (showOnlyFavorites) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -251,16 +243,16 @@ fun ViralHooksScreen(
                 val isSelected = category == selectedCategory
                 Surface(
                     shape = RoundedCornerShape(20.dp),
-                    color = if (isSelected) SunsetOrange else SurfaceCardElevated,
+                    color = if (isSelected) SunsetOrange else MaterialTheme.colorScheme.surfaceVariant,
                     border = androidx.compose.foundation.BorderStroke(
                         1.dp,
-                        if (isSelected) SunsetOrange else SurfaceCardBorder
+                        if (isSelected) SunsetOrange else MaterialTheme.colorScheme.outline
                     ),
                     modifier = Modifier.clickable { viewModel.setCategory(category) }
                 ) {
                     Text(
                         text = category.titleFa,
-                        color = if (isSelected) Color.White else TextSecondary,
+                        color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 12.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                         modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
@@ -282,13 +274,13 @@ fun ViralHooksScreen(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = "هیچ قلابی با این مشخصات یافت نشد!",
-                        color = TextSecondary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 14.sp
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "می‌توانید فیلتر جستجو را پاک کنید.",
-                        color = TextMuted,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                         fontSize = 12.sp
                     )
                 }
@@ -331,10 +323,10 @@ fun HookCardItem(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = SurfaceCard),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = androidx.compose.foundation.BorderStroke(
             1.dp,
-            if (hook.isVipOnly && !isUnlocked) VipGold.copy(alpha = 0.5f) else SurfaceCardBorder
+            if (hook.isVipOnly && !isUnlocked) VipGold.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outline
         )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -347,7 +339,7 @@ fun HookCardItem(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = SurfaceCardElevated
+                        color = MaterialTheme.colorScheme.surfaceVariant
                     ) {
                         Text(
                             text = hook.category.titleFa,
@@ -419,7 +411,7 @@ fun HookCardItem(
                         Icon(
                             imageVector = if (isFavorite) Icons.Default.Star else Icons.Default.StarBorder,
                             contentDescription = "ذخیره",
-                            tint = if (isFavorite) SunsetOrange else TextMuted
+                            tint = if (isFavorite) SunsetOrange else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                         )
                     }
                 }
@@ -430,7 +422,7 @@ fun HookCardItem(
             // Title
             Text(
                 text = hook.title,
-                color = TextSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium
             )
@@ -442,12 +434,12 @@ fun HookCardItem(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = SurfaceCardElevated),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceCardBorder)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
                     Text(
                         text = "« ${hook.hookFa} »",
-                        color = TextPrimary,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
                         lineHeight = 24.sp,
@@ -467,7 +459,7 @@ fun HookCardItem(
                     )
                     Text(
                         text = hook.psychologyExplanation,
-                        color = TextSecondary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 11.sp,
                         lineHeight = 18.sp,
                         modifier = Modifier.weight(1f)
@@ -486,7 +478,7 @@ fun HookCardItem(
                     )
                     Text(
                         text = hook.visualSceneTip,
-                        color = TextMuted,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                         fontSize = 11.sp,
                         lineHeight = 18.sp,
                         modifier = Modifier.weight(1f)
@@ -499,20 +491,20 @@ fun HookCardItem(
                 Button(
                     onClick = onCopyClick,
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = SurfaceCardElevated),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceCardBorder),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                     modifier = Modifier.fillMaxWidth().height(42.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.ContentCopy,
                         contentDescription = null,
-                        tint = TextPrimary,
+                        tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "کپی کردن متن قلاب",
-                        color = TextPrimary,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -522,7 +514,7 @@ fun HookCardItem(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = SurfaceCardElevated),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                     border = androidx.compose.foundation.BorderStroke(1.dp, VipGold.copy(alpha = 0.3f))
                 ) {
                     Column(
@@ -540,14 +532,14 @@ fun HookCardItem(
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             text = "این قلاب وایرال قفل است (مخصوص VIP)",
-                            color = TextPrimary,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "با خرید اشتراک VIP یا مشاهده یک ویدیوی کوتاه ۵ ثانیه‌ای به آن دسترسی پیدا کنید:",
-                            color = TextSecondary,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 11.sp,
                             textAlign = TextAlign.Center
                         )

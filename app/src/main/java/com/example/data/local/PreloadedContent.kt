@@ -1,11 +1,113 @@
 package com.example.data.local
 
+import com.example.R
 import com.example.data.model.ContentDayPlan
+import com.example.data.model.CoverCategory
+import com.example.data.model.CoverTemplate
 import com.example.data.model.HookCategory
 import com.example.data.model.HookItem
 import com.example.data.model.ScriptTemplate
 
 object PreloadedContent {
+
+    val coverTemplates: List<CoverTemplate> = listOf(
+        CoverTemplate(
+            id = "cover_tech_1",
+            title = "هوش مصنوعی و تکنولوژی نئونی",
+            category = CoverCategory.TECH,
+            drawableResId = R.drawable.thumb_tech_gradient_1789023413177,
+            defaultMainHeadline = "۵ ابزار رایگان هوش مصنوعی",
+            defaultSubHeadline = "که بدون آن‌ها در سال جدید جا می‌مانید!",
+            badgeText = "هوش مصنوعی ۲۰۲۶",
+            accentColorHex = 0xFF00F0FF,
+            textColorHex = 0xFFFFFFFF,
+            isVipOnly = false
+        ),
+        CoverTemplate(
+            id = "cover_tech_2",
+            title = "ترفند مخفی اینستاگرام و موبایل",
+            category = CoverCategory.TECH,
+            drawableResId = R.drawable.thumb_tech_gradient_1789023413177,
+            defaultMainHeadline = "تنظیمات مخفی برای رفتن به اکسپلور",
+            defaultSubHeadline = "این ۳ دکمه را فوراً در پیجت فعال کن",
+            badgeText = "الگوریتم جدید",
+            accentColorHex = 0xFF8B5CF6,
+            textColorHex = 0xFFFFFFFF,
+            isVipOnly = true
+        ),
+        CoverTemplate(
+            id = "cover_finance_1",
+            title = "درآمد دلاری و هوش مالی طلایی",
+            category = CoverCategory.FINANCE,
+            drawableResId = R.drawable.thumb_finance_gold_1789023425894,
+            defaultMainHeadline = "چگونه ماهیانه ۵۰ میلیون بسازیم؟",
+            defaultSubHeadline = "نقشه راه درآمدزایی با مهارت‌های ساده بدون سرمایه",
+            badgeText = "کسب درآمد",
+            accentColorHex = 0xFFFFD700,
+            textColorHex = 0xFFFFFFFF,
+            isVipOnly = false
+        ),
+        CoverTemplate(
+            id = "cover_finance_2",
+            title = "بیزینس و رشد انفجاری فروش",
+            category = CoverCategory.FINANCE,
+            drawableResId = R.drawable.thumb_finance_gold_1789023425894,
+            defaultMainHeadline = "فرمول ۳ برابری فروش آنلاین‌شاپ",
+            defaultSubHeadline = "دیگر نیازی به هزینه‌های سنگین تبلیغات نیست!",
+            badgeText = "فرمول فروش",
+            accentColorHex = 0xFFFFA000,
+            textColorHex = 0xFFFFFFFF,
+            isVipOnly = true
+        ),
+        CoverTemplate(
+            id = "cover_viral_1",
+            title = "کاور آتشین شوکه‌کننده و وایرال",
+            category = CoverCategory.VIRAL,
+            drawableResId = R.drawable.thumb_viral_fire_1789023437739,
+            defaultMainHeadline = "این اشتباه پیجت رو به نابودی برد!",
+            defaultSubHeadline = "فوری این ترفند رو اجرا کن تا بازدیدهات منفجر بشن",
+            badgeText = "هشدار مهم",
+            accentColorHex = 0xFFFF3D00,
+            textColorHex = 0xFFFFFFFF,
+            isVipOnly = false
+        ),
+        CoverTemplate(
+            id = "cover_viral_2",
+            title = "راز پنهان شورتز یوتیوب و ریلز",
+            category = CoverCategory.VIRAL,
+            drawableResId = R.drawable.thumb_viral_fire_1789023437739,
+            defaultMainHeadline = "رکورد ۱ میلیون بازدید در ۲۴ ساعت!",
+            defaultSubHeadline = "ترفند قلاب‌های ۳ ثانیه‌ای که هیچ استادی بهت نمیگه",
+            badgeText = "+۱M Views",
+            accentColorHex = 0xFFFF1744,
+            textColorHex = 0xFFFFFFFF,
+            isVipOnly = true
+        ),
+        CoverTemplate(
+            id = "cover_minimal_1",
+            title = "مینیمال و پاستلی بلاگری و روزمره",
+            category = CoverCategory.LIFESTYLE,
+            drawableResId = R.drawable.thumb_minimal_lifestyle_1789023449011,
+            defaultMainHeadline = "روتین روزانه یک فرد به شدت منظم",
+            defaultSubHeadline = "چگونه در کمترین زمان بیشترین بهره‌وری را داشته باشیم",
+            badgeText = "سبک زندگی",
+            accentColorHex = 0xFF6366F1,
+            textColorHex = 0xFF1F2937,
+            isVipOnly = false
+        ),
+        CoverTemplate(
+            id = "cover_minimal_2",
+            title = "کتاب و توسعه فردی آرامش‌بخش",
+            category = CoverCategory.LIFESTYLE,
+            drawableResId = R.drawable.thumb_minimal_lifestyle_1789023449011,
+            defaultMainHeadline = "۳ کتابی که تفکرت رو عوض می‌کنه",
+            defaultSubHeadline = "اگر در ۲۰ سالگی هستی حتماً این ۳ شاهکار رو بخون",
+            badgeText = "رشد فردی",
+            accentColorHex = 0xFFEC4899,
+            textColorHex = 0xFF1F2937,
+            isVipOnly = false
+        )
+    )
 
     val hooks: List<HookItem> = listOf(
         // ONLINE_SHOP

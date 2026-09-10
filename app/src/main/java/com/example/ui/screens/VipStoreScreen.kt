@@ -19,12 +19,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Diamond
-import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -32,6 +29,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -46,15 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.theme.DarkBg
-import com.example.ui.theme.ElectricPurple
 import com.example.ui.theme.SunsetOrange
-import com.example.ui.theme.SurfaceCard
-import com.example.ui.theme.SurfaceCardBorder
-import com.example.ui.theme.SurfaceCardElevated
-import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
 import com.example.ui.theme.VipGold
 import com.example.ui.theme.VipGoldDark
 import com.example.ui.viewmodel.ReelsViewModel
@@ -62,26 +52,52 @@ import com.example.ui.viewmodel.ReelsViewModel
 @Composable
 fun VipStoreScreen(
     viewModel: ReelsViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onBackClick: (() -> Unit)? = null
 ) {
     val vipState by viewModel.vipState.collectAsState()
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(DarkBg)
+            .background(MaterialTheme.colorScheme.background)
     ) {
+        // Back Navigation Row if requested
+        if (onBackClick != null) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onBackClick() }
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "بازگشت",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "بازگشت به ابزارها",
+                    color = MaterialTheme.colorScheme.primary,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+
         // Top Header
-        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = if (onBackClick == null) 12.dp else 4.dp)) {
             Text(
                 text = "فروشگاه اشتراک VIP ریلز استودیو",
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold
             )
             Text(
                 text = "دسترسی نامحدود به سناریوهای انفجار بازدید و حذف کامل تبلیغات",
-                color = TextSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 12.sp
             )
         }
@@ -97,11 +113,11 @@ fun VipStoreScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = if (vipState.isVipActive) Color(0xFF261E05) else SurfaceCard
+                        containerColor = if (vipState.isVipActive) VipGold.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surface
                     ),
                     border = androidx.compose.foundation.BorderStroke(
                         1.5.dp,
-                        if (vipState.isVipActive) VipGold else SurfaceCardBorder
+                        if (vipState.isVipActive) VipGold else MaterialTheme.colorScheme.outline
                     )
                 ) {
                     Row(
@@ -119,7 +135,7 @@ fun VipStoreScreen(
                                     .background(
                                         Brush.linearGradient(
                                             if (vipState.isVipActive) listOf(VipGoldDark, VipGold)
-                                            else listOf(SurfaceCardBorder, SurfaceCardElevated)
+                                             else listOf(MaterialTheme.colorScheme.outline, MaterialTheme.colorScheme.surfaceVariant)
                                         )
                                     ),
                                 contentAlignment = Alignment.Center
@@ -127,7 +143,7 @@ fun VipStoreScreen(
                                 Icon(
                                     imageVector = Icons.Default.WorkspacePremium,
                                     contentDescription = null,
-                                    tint = if (vipState.isVipActive) Color.Black else TextSecondary,
+                                    tint = if (vipState.isVipActive) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(28.dp)
                                 )
                             }
@@ -137,14 +153,14 @@ fun VipStoreScreen(
                             Column {
                                 Text(
                                     text = if (vipState.isVipActive) "اشتراک VIP شما فعال است" else "طرح فعلی: کاربر رایگان",
-                                    color = if (vipState.isVipActive) VipGold else TextPrimary,
+                                    color = if (vipState.isVipActive) VipGold else MaterialTheme.colorScheme.onSurface,
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
                                     text = if (vipState.isVipActive) "پلن: ${vipState.planName} (تا ${vipState.expirationDateString})"
                                     else "دسترسی محدود با نمایش تبلیغات درون‌برنامه‌ای",
-                                    color = TextSecondary,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontSize = 11.sp
                                 )
                             }
@@ -157,7 +173,7 @@ fun VipStoreScreen(
             item {
                 Text(
                     text = "پلن‌های اشتراک ویژه را انتخاب کنید:",
-                    color = TextPrimary,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -206,7 +222,7 @@ fun VipStoreScreen(
             item {
                 Text(
                     text = "مقایسه نسخه رایگان با نسخه VIP:",
-                    color = TextPrimary,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -216,20 +232,20 @@ fun VipStoreScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(containerColor = SurfaceCard),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceCardBorder)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
                     Column(modifier = Modifier.padding(14.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("امکانات", color = TextMuted, fontSize = 11.sp, modifier = Modifier.weight(1.5f))
-                            Text("رایگان", color = TextSecondary, fontSize = 11.sp, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
+                            Text("امکانات", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f), fontSize = 11.sp, modifier = Modifier.weight(1.5f))
+                            Text("رایگان", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
                             Text("طلایی VIP", color = VipGold, fontSize = 11.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
                         }
 
-                        Divider(modifier = Modifier.padding(vertical = 10.dp), color = SurfaceCardBorder)
+                        Divider(modifier = Modifier.padding(vertical = 10.dp), color = MaterialTheme.colorScheme.outline)
 
                         ComparisonRow("دسترسی به قلاب‌های ۳ ثانیه‌ای", "پایه (با تبلیغ)", "نامحدود فوری")
                         ComparisonRow("قالب‌های سناریوساز ریلز", "۲ سناریو", "تمام سناریوها")
@@ -246,7 +262,7 @@ fun VipStoreScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
-                        .background(SurfaceCardElevated)
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
                         .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -259,7 +275,7 @@ fun VipStoreScreen(
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
                         text = "پرداخت امن از طریق درگاه رسمی کافه‌بازار و مایکت با ضمانت بازگشت وجه ۷ روزه",
-                        color = TextSecondary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 11.sp,
                         lineHeight = 16.sp
                     )
@@ -283,11 +299,11 @@ fun PlanCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isPopular) SurfaceCardElevated else SurfaceCard
+            containerColor = if (isPopular) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface
         ),
         border = androidx.compose.foundation.BorderStroke(
             if (isPopular) 1.5.dp else 1.dp,
-            if (isPopular) SunsetOrange else SurfaceCardBorder
+            if (isPopular) SunsetOrange else MaterialTheme.colorScheme.outline
         )
     ) {
         Column(modifier = Modifier.padding(18.dp)) {
@@ -298,7 +314,7 @@ fun PlanCard(
             ) {
                 Text(
                     text = title,
-                    color = TextPrimary,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -332,7 +348,7 @@ fun PlanCard(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = originalPrice,
-                        color = TextMuted,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                         fontSize = 12.sp,
                         style = androidx.compose.ui.text.TextStyle(
                             textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough
@@ -357,7 +373,7 @@ fun PlanCard(
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = feat, color = TextSecondary, fontSize = 11.sp)
+                    Text(text = feat, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                 }
             }
 
@@ -367,7 +383,7 @@ fun PlanCard(
                 onClick = onSelect,
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isPopular) SunsetOrange else SurfaceCardBorder,
+                    containerColor = if (isPopular) SunsetOrange else MaterialTheme.colorScheme.primary,
                     contentColor = Color.White
                 ),
                 modifier = Modifier.fillMaxWidth().height(44.dp)
@@ -391,8 +407,8 @@ fun ComparisonRow(feature: String, freeValue: String, vipValue: String) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(feature, color = TextSecondary, fontSize = 11.sp, modifier = Modifier.weight(1.5f))
-        Text(freeValue, color = TextMuted, fontSize = 10.sp, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
+        Text(feature, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp, modifier = Modifier.weight(1.5f))
+        Text(freeValue, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f), fontSize = 10.sp, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
         Text(vipValue, color = VipGold, fontSize = 10.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
     }
 }

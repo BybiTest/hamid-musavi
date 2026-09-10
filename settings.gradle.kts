@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "Reels Studio"
+rootProject.name = "Remix Reels Studio"
 
 include(":app")

@@ -1,7 +1,6 @@
 package com.example.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,18 +19,16 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
-import androidx.compose.material.icons.filled.WorkspacePremium
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,15 +44,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.AppTab
 import com.example.data.model.ContentDayPlan
-import com.example.ui.theme.DarkBg
 import com.example.ui.theme.ElectricPurple
+import com.example.ui.theme.SuccessGreen
 import com.example.ui.theme.SunsetOrange
-import com.example.ui.theme.SurfaceCard
-import com.example.ui.theme.SurfaceCardBorder
-import com.example.ui.theme.SurfaceCardElevated
-import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
 import com.example.ui.theme.VipGold
 import com.example.ui.theme.VipGoldDark
 import com.example.ui.viewmodel.ReelsViewModel
@@ -63,7 +54,8 @@ import com.example.ui.viewmodel.ReelsViewModel
 @Composable
 fun ContentPlannerScreen(
     viewModel: ReelsViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onBackClick: (() -> Unit)? = null
 ) {
     val progressMap by viewModel.plannerProgress.collectAsState()
     val vipState by viewModel.vipState.collectAsState()
@@ -75,19 +67,44 @@ fun ContentPlannerScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(DarkBg)
+            .background(MaterialTheme.colorScheme.background)
     ) {
+        // Back Navigation Row if requested
+        if (onBackClick != null) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onBackClick() }
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "بازگشت",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "بازگشت به ابزارها",
+                    color = MaterialTheme.colorScheme.primary,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+
         // Header
-        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = if (onBackClick == null) 12.dp else 4.dp)) {
             Text(
                 text = "تقویم ۳۰ روزه چالش وایرال ریلز",
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold
             )
             Text(
                 text = "برنامه منظم انتشار پست روزانه برای تسخیر الگوریتم",
-                color = TextSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 12.sp
             )
         }
@@ -98,8 +115,8 @@ fun ContentPlannerScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
             shape = RoundedCornerShape(18.dp),
-            colors = CardDefaults.cardColors(containerColor = SurfaceCard),
-            border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceCardBorder)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(
@@ -126,13 +143,13 @@ fun ContentPlannerScreen(
                         Column {
                             Text(
                                 text = "پیشرفت چالش ۳۰ روزه",
-                                color = TextPrimary,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
                                 text = "$completedCount روز از ${days.size} روز انجام شده",
-                                color = TextSecondary,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 11.sp
                             )
                         }
@@ -155,7 +172,7 @@ fun ContentPlannerScreen(
                         .height(8.dp)
                         .clip(RoundedCornerShape(4.dp)),
                     color = SunsetOrange,
-                    trackColor = SurfaceCardElevated
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant
                 )
             }
         }
@@ -196,11 +213,11 @@ fun DayPlanCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isCompleted) Color(0xFF14241B) else SurfaceCard
+            containerColor = if (isCompleted) SuccessGreen.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface
         ),
         border = androidx.compose.foundation.BorderStroke(
             1.dp,
-            if (isCompleted) Color(0xFF10B981) else if (isLocked) VipGold.copy(alpha = 0.5f) else SurfaceCardBorder
+            if (isCompleted) SuccessGreen else if (isLocked) VipGold.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outline
         )
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
@@ -213,7 +230,7 @@ fun DayPlanCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = if (isCompleted) Color(0xFF10B981) else SunsetOrange
+                        color = if (isCompleted) SuccessGreen else SunsetOrange
                     ) {
                         Text(
                             text = "روز ${dayPlan.dayNumber}",
@@ -228,11 +245,11 @@ fun DayPlanCard(
 
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = SurfaceCardElevated
+                        color = MaterialTheme.colorScheme.surfaceVariant
                     ) {
                         Text(
                             text = dayPlan.category,
-                            color = TextSecondary,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 10.sp,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
                         )
@@ -264,7 +281,7 @@ fun DayPlanCard(
                         Icon(
                             imageVector = if (isCompleted) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
                             contentDescription = "انجام شد",
-                            tint = if (isCompleted) Color(0xFF10B981) else TextMuted,
+                            tint = if (isCompleted) SuccessGreen else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -276,7 +293,7 @@ fun DayPlanCard(
             // Title
             Text(
                 text = dayPlan.title,
-                color = if (isCompleted) Color(0xFF10B981) else TextPrimary,
+                color = if (isCompleted) SuccessGreen else MaterialTheme.colorScheme.onSurface,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -287,7 +304,7 @@ fun DayPlanCard(
                 // Hook idea
                 Row(modifier = Modifier.fillMaxWidth()) {
                     Text("💡 قلاب پیشنهادی: ", color = VipGold, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    Text("« ${dayPlan.hookIdea} »", color = TextPrimary, fontSize = 11.sp, modifier = Modifier.weight(1f))
+                    Text("« ${dayPlan.hookIdea} »", color = MaterialTheme.colorScheme.onSurface, fontSize = 11.sp, modifier = Modifier.weight(1f))
                 }
 
                 Spacer(modifier = Modifier.height(4.dp))
@@ -295,12 +312,12 @@ fun DayPlanCard(
                 // Filming tip
                 Row(modifier = Modifier.fillMaxWidth()) {
                     Text("🎬 نکته فیلمبرداری: ", color = ElectricPurple, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    Text(dayPlan.filmingTip, color = TextMuted, fontSize = 11.sp, modifier = Modifier.weight(1f))
+                    Text(dayPlan.filmingTip, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp, modifier = Modifier.weight(1f))
                 }
             } else {
                 Text(
                     text = "سناریو و نکات تخصصی نیمه دوم چالش مخصوص کاربران VIP است.",
-                    color = TextSecondary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 11.sp
                 )
             }

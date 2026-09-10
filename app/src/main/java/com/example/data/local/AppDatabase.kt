@@ -10,9 +10,10 @@ import androidx.room.RoomDatabase
         SavedScriptEntity::class,
         FavoriteHookEntity::class,
         PlannerProgressEntity::class,
-        VipStateEntity::class
+        VipStateEntity::class,
+        AppSettingsEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -28,7 +29,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "reels_studio_db"
-                ).build()
+                ).fallbackToDestructiveMigration().build()
                 INSTANCE = instance
                 instance
             }

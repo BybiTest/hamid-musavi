@@ -1,5 +1,6 @@
 package com.example.data.repository
 
+import com.example.data.local.AppSettingsEntity
 import com.example.data.local.FavoriteHookEntity
 import com.example.data.local.PlannerProgressEntity
 import com.example.data.local.SavedScriptEntity
@@ -25,8 +26,14 @@ class ReelsRepository(private val reelsDao: ReelsDao) {
 
     val vipState: Flow<VipStateEntity> = reelsDao.getVipState().map { it ?: VipStateEntity() }
 
+    val appSettings: Flow<AppSettingsEntity> = reelsDao.getAppSettings().map { it ?: AppSettingsEntity() }
+
     val plannerProgress: Flow<Map<Int, Boolean>> = reelsDao.getAllPlannerProgress().map { list ->
         list.associate { it.dayNumber to it.isCompleted }
+    }
+
+    suspend fun updateSettings(settings: AppSettingsEntity) {
+        reelsDao.saveAppSettings(settings)
     }
 
     fun getAllHooks(): List<HookItem> = PreloadedContent.hooks
@@ -34,6 +41,8 @@ class ReelsRepository(private val reelsDao: ReelsDao) {
     fun getAllTemplates(): List<ScriptTemplate> = PreloadedContent.templates
 
     fun getAllPlannerDays(): List<ContentDayPlan> = PreloadedContent.plannerDays
+
+    fun getAllCoverTemplates(): List<com.example.data.model.CoverTemplate> = PreloadedContent.coverTemplates
 
     suspend fun toggleFavorite(hookId: String, currentFavorites: List<String>) {
         if (currentFavorites.contains(hookId)) {

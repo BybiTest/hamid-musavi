@@ -18,6 +18,15 @@ val TextPrimary = Color(0xFFF8F9FC)
 val TextSecondary = Color(0xFFA3A2B8)
 val TextMuted = Color(0xFF6F6E84)
 
+// Light Theme Colors
+val LightBg = Color(0xFFF8F9FA)
+val LightSurface = Color(0xFFFFFFFF)
+val LightSurfaceElevated = Color(0xFFF1F3F5)
+val LightSurfaceBorder = Color(0xFFE5E7EB)
+val LightTextPrimary = Color(0xFF1F2937)
+val LightTextSecondary = Color(0xFF4B5563)
+val LightTextMuted = Color(0xFF9CA3AF)
+
 val SuccessGreen = Color(0xFF10B981)
 val ErrorRed = Color(0xFFEF4444)
 val WarningAmber = Color(0xFFF59E0B)

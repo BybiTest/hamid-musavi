@@ -4,9 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,19 +23,20 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -61,15 +60,8 @@ import androidx.compose.ui.unit.sp
 import com.example.data.local.SavedScriptEntity
 import com.example.data.model.AppTab
 import com.example.data.model.ScriptTemplate
-import com.example.ui.theme.DarkBg
 import com.example.ui.theme.ElectricPurple
 import com.example.ui.theme.SunsetOrange
-import com.example.ui.theme.SurfaceCard
-import com.example.ui.theme.SurfaceCardBorder
-import com.example.ui.theme.SurfaceCardElevated
-import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
 import com.example.ui.theme.VipGold
 import com.example.ui.theme.VipGoldDark
 import com.example.ui.viewmodel.ReelsViewModel
@@ -89,19 +81,19 @@ fun ScriptMakerScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(DarkBg)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         // Header
         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
             Text(
                 text = "سناریوساز حرفه‌ای ریلز",
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold
             )
             Text(
                 text = "فرمول ۳ مرحله‌ای وایرال: قلاب ۳ ثانیه‌ای + بدنه ارزش‌آفرین + CTA",
-                color = TextSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 12.sp
             )
         }
@@ -109,19 +101,31 @@ fun ScriptMakerScreen(
         // Section Tabs (Maker vs Saved)
         TabRow(
             selectedTabIndex = selectedSectionIndex,
-            containerColor = SurfaceCard,
+            containerColor = MaterialTheme.colorScheme.surface,
             contentColor = SunsetOrange,
             divider = {}
         ) {
             Tab(
                 selected = selectedSectionIndex == 0,
                 onClick = { selectedSectionIndex = 0 },
-                text = { Text("ساخت سناریوی جدید", fontWeight = FontWeight.Bold) }
+                text = {
+                    Text(
+                        "ساخت سناریوی جدید",
+                        fontWeight = FontWeight.Bold,
+                        color = if (selectedSectionIndex == 0) SunsetOrange else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             )
             Tab(
                 selected = selectedSectionIndex == 1,
                 onClick = { selectedSectionIndex = 1 },
-                text = { Text("سناریوهای من (${savedScripts.size})", fontWeight = FontWeight.Bold) }
+                text = {
+                    Text(
+                        "سناریوهای من (${savedScripts.size})",
+                        fontWeight = FontWeight.Bold,
+                        color = if (selectedSectionIndex == 1) SunsetOrange else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             )
         }
 
@@ -137,7 +141,7 @@ fun ScriptMakerScreen(
                 item {
                     Text(
                         text = "۱. انتخاب قالب سناریو بر اساس هدف شما:",
-                        color = TextPrimary,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -163,11 +167,11 @@ fun ScriptMakerScreen(
                                     },
                                 shape = RoundedCornerShape(14.dp),
                                 colors = CardDefaults.cardColors(
-                                    containerColor = if (isSelected) SurfaceCardElevated else SurfaceCard
+                                    containerColor = if (isSelected) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface
                                 ),
                                 border = androidx.compose.foundation.BorderStroke(
                                     if (isSelected) 1.5.dp else 1.dp,
-                                    if (isSelected) SunsetOrange else if (isLocked) VipGold.copy(alpha = 0.5f) else SurfaceCardBorder
+                                    if (isSelected) SunsetOrange else if (isLocked) VipGold.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outline
                                 )
                             ) {
                                 Column(modifier = Modifier.padding(12.dp)) {
@@ -178,7 +182,7 @@ fun ScriptMakerScreen(
                                     ) {
                                         Surface(
                                             shape = RoundedCornerShape(6.dp),
-                                            color = SurfaceCardBorder
+                                            color = MaterialTheme.colorScheme.surfaceVariant
                                         ) {
                                             Row(
                                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
@@ -187,13 +191,13 @@ fun ScriptMakerScreen(
                                                 Icon(
                                                     imageVector = Icons.Default.Timer,
                                                     contentDescription = null,
-                                                    tint = TextSecondary,
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                                     modifier = Modifier.size(12.dp)
                                                 )
                                                 Spacer(modifier = Modifier.width(3.dp))
                                                 Text(
                                                     text = "${template.durationSeconds} ثانیه",
-                                                    color = TextSecondary,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                     fontSize = 10.sp
                                                 )
                                             }
@@ -219,7 +223,7 @@ fun ScriptMakerScreen(
 
                                     Text(
                                         text = template.title,
-                                        color = if (isSelected) SunsetOrange else TextPrimary,
+                                        color = if (isSelected) SunsetOrange else MaterialTheme.colorScheme.onSurface,
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
                                         maxLines = 2
@@ -233,7 +237,7 @@ fun ScriptMakerScreen(
                 item {
                     Text(
                         text = "۲. متغیرهای دلخواه خود را وارد کنید:",
-                        color = TextPrimary,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -243,12 +247,12 @@ fun ScriptMakerScreen(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = SurfaceCard),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceCardBorder)
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                     ) {
                         Column(modifier = Modifier.padding(14.dp)) {
                             // Topic
-                            Text("موضوع یا محصول شما:", color = TextSecondary, fontSize = 11.sp)
+                            Text("موضوع یا محصول شما:", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                             Spacer(modifier = Modifier.height(4.dp))
                             OutlinedTextField(
                                 value = state.customTopic,
@@ -258,19 +262,19 @@ fun ScriptMakerScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(10.dp),
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedContainerColor = SurfaceCardElevated,
-                                    unfocusedContainerColor = SurfaceCardElevated,
+                                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                                     focusedBorderColor = SunsetOrange,
-                                    unfocusedBorderColor = SurfaceCardBorder,
-                                    focusedTextColor = TextPrimary,
-                                    unfocusedTextColor = TextPrimary
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                                 )
                             )
 
                             Spacer(modifier = Modifier.height(10.dp))
 
                             // Benefit
-                            Text("بزرگترین فایده یا راه‌حل ملموس:", color = TextSecondary, fontSize = 11.sp)
+                            Text("بزرگترین فایده یا راه‌حل ملموس:", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                             Spacer(modifier = Modifier.height(4.dp))
                             OutlinedTextField(
                                 value = state.customBenefit,
@@ -280,19 +284,19 @@ fun ScriptMakerScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(10.dp),
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedContainerColor = SurfaceCardElevated,
-                                    unfocusedContainerColor = SurfaceCardElevated,
+                                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                                     focusedBorderColor = SunsetOrange,
-                                    unfocusedBorderColor = SurfaceCardBorder,
-                                    focusedTextColor = TextPrimary,
-                                    unfocusedTextColor = TextPrimary
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                                 )
                             )
 
                             Spacer(modifier = Modifier.height(10.dp))
 
                             // Obstacle / Mistake
-                            Text("اشتباه بزرگ یا ضرر مشتری:", color = TextSecondary, fontSize = 11.sp)
+                            Text("اشتباه بزرگ یا ضرر مشتری:", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                             Spacer(modifier = Modifier.height(4.dp))
                             OutlinedTextField(
                                 value = state.customObstacle,
@@ -302,19 +306,19 @@ fun ScriptMakerScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(10.dp),
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedContainerColor = SurfaceCardElevated,
-                                    unfocusedContainerColor = SurfaceCardElevated,
+                                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                                     focusedBorderColor = SunsetOrange,
-                                    unfocusedBorderColor = SurfaceCardBorder,
-                                    focusedTextColor = TextPrimary,
-                                    unfocusedTextColor = TextPrimary
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                                 )
                             )
 
                             Spacer(modifier = Modifier.height(10.dp))
 
                             // CTA
-                            Text("دعوت به اقدام پایانی (CTA):", color = TextSecondary, fontSize = 11.sp)
+                            Text("دعوت به اقدام پایانی (CTA):", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                             Spacer(modifier = Modifier.height(4.dp))
                             OutlinedTextField(
                                 value = state.customCta,
@@ -324,12 +328,12 @@ fun ScriptMakerScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(10.dp),
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedContainerColor = SurfaceCardElevated,
-                                    unfocusedContainerColor = SurfaceCardElevated,
+                                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                                     focusedBorderColor = SunsetOrange,
-                                    unfocusedBorderColor = SurfaceCardBorder,
-                                    focusedTextColor = TextPrimary,
-                                    unfocusedTextColor = TextPrimary
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                                 )
                             )
                         }
@@ -339,7 +343,7 @@ fun ScriptMakerScreen(
                 item {
                     Text(
                         text = "۳. سناریوی نهایی آماده فیلمبرداری:",
-                        color = TextPrimary,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -349,18 +353,62 @@ fun ScriptMakerScreen(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = SurfaceCardElevated),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                         border = androidx.compose.foundation.BorderStroke(1.dp, SunsetOrange.copy(alpha = 0.5f))
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text(
                                 text = state.generatedScript,
-                                color = TextPrimary,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 fontSize = 13.sp,
                                 lineHeight = 22.sp
                             )
 
                             Spacer(modifier = Modifier.height(16.dp))
+
+                            // AI Direct Integration Actions
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Button(
+                                    onClick = { viewModel.enhanceCurrentScriptWithAi() },
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = ElectricPurple,
+                                        contentColor = Color.White
+                                    ),
+                                    modifier = Modifier.weight(1f).height(40.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.AutoAwesome,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("ارتقای سناریو با هوش مصنوعی", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+
+                                Button(
+                                    onClick = { viewModel.generateAiHookForScript() },
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = SunsetOrange,
+                                        contentColor = Color.White
+                                    ),
+                                    modifier = Modifier.weight(1f).height(40.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.ElectricBolt,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("قلاب جادویی AI", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -369,7 +417,7 @@ fun ScriptMakerScreen(
                                 Button(
                                     onClick = { viewModel.saveCurrentScript() },
                                     shape = RoundedCornerShape(10.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = SunsetOrange),
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                                     modifier = Modifier.weight(1f).height(42.dp)
                                 ) {
                                     Icon(
@@ -393,7 +441,7 @@ fun ScriptMakerScreen(
                                     Icon(
                                         imageVector = Icons.Default.ContentCopy,
                                         contentDescription = "کپی",
-                                        tint = TextPrimary,
+                                        tint = MaterialTheme.colorScheme.onSurface,
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }
@@ -414,7 +462,7 @@ fun ScriptMakerScreen(
                                     Icon(
                                         imageVector = Icons.Default.Share,
                                         contentDescription = "اشتراک",
-                                        tint = TextPrimary,
+                                        tint = MaterialTheme.colorScheme.onSurface,
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }
@@ -436,19 +484,19 @@ fun ScriptMakerScreen(
                         Icon(
                             imageVector = Icons.Default.Bookmark,
                             contentDescription = null,
-                            tint = TextMuted,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                             modifier = Modifier.size(48.dp)
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             text = "هنوز سناریویی ذخیره نکرده‌اید!",
-                            color = TextSecondary,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 14.sp
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             text = "از تب ساخت سناریو، سناریوی دلخواهتان را بسازید و ذخیره کنید.",
-                            color = TextMuted,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                             fontSize = 12.sp
                         )
                     }
@@ -484,8 +532,8 @@ fun SavedScriptCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = SurfaceCard),
-        border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceCardBorder)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Row(
@@ -502,7 +550,7 @@ fun SavedScriptCard(
 
                 Text(
                     text = item.dateCreated,
-                    color = TextMuted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                     fontSize = 10.sp
                 )
             }
@@ -511,7 +559,7 @@ fun SavedScriptCard(
 
             Text(
                 text = item.fullScript,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 12.sp,
                 lineHeight = 20.sp,
                 maxLines = 4
@@ -524,7 +572,7 @@ fun SavedScriptCard(
                 horizontalArrangement = Arrangement.End
             ) {
                 IconButton(onClick = onCopy, modifier = Modifier.size(36.dp)) {
-                    Icon(imageVector = Icons.Default.ContentCopy, contentDescription = "کپی", tint = TextSecondary, modifier = Modifier.size(18.dp))
+                    Icon(imageVector = Icons.Default.ContentCopy, contentDescription = "کپی", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
                 }
                 IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
                     Icon(imageVector = Icons.Default.Delete, contentDescription = "حذف", tint = Color(0xFFEF4444), modifier = Modifier.size(18.dp))

@@ -42,4 +42,11 @@ interface ReelsDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun saveVipState(vipState: VipStateEntity)
+
+    // App Settings
+    @Query("SELECT * FROM app_settings WHERE id = 1")
+    fun getAppSettings(): Flow<AppSettingsEntity?>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun saveAppSettings(settings: AppSettingsEntity)
 }
