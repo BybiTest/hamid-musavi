@@ -62,7 +62,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.model.AppTab
-import com.example.ui.components.AdBannerView
+import com.example.ui.components.RealAdBannerView
 import com.example.ui.components.RewardedAdDialog
 import com.example.ui.components.VipCheckoutDialog
 import com.example.ui.screens.AiAssistantScreen
@@ -82,9 +82,11 @@ import com.example.ui.viewmodel.ReelsViewModel
 import kotlinx.coroutines.flow.collectLatest
 
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
         setContent {
             val viewModel: ReelsViewModel = viewModel()
             val appSettings by viewModel.appSettings.collectAsState()
@@ -93,7 +95,9 @@ class MainActivity : ComponentActivity() {
                 isDarkMode = appSettings.isDarkMode,
                 fontScale = appSettings.fontScale
             ) {
-                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                CompositionLocalProvider(
+                    LocalLayoutDirection provides LayoutDirection.Rtl
+                ) {
                     ReelsStudioApp(viewModel = viewModel)
                 }
             }
@@ -112,16 +116,17 @@ fun ReelsStudioApp(
     val isAdWatching by viewModel.isAdWatching.collectAsState()
     val adCountdown by viewModel.adCountdown.collectAsState()
     val checkoutPlan by viewModel.selectedCheckoutPlan.collectAsState()
+
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Intercept back button when inside secondary sub-screens
     val isSubScreenOfTools = currentTab in listOf(
         AppTab.PLANNER,
         AppTab.CALCULATOR,
         AppTab.VIP,
         AppTab.SETTINGS
     )
+
     BackHandler(enabled = isSubScreenOfTools || currentTab != AppTab.HOOKS) {
         if (isSubScreenOfTools) {
             viewModel.selectTab(AppTab.TOOLS)
@@ -141,7 +146,9 @@ fun ReelsStudioApp(
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.safeDrawing),
         containerColor = Color.Transparent,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = {
+            SnackbarHost(snackbarHostState)
+        },
         topBar = {
             Surface(
                 color = MaterialTheme.colorScheme.surface,
@@ -155,16 +162,25 @@ fun ReelsStudioApp(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // Logo & App Name
+
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.clickable { viewModel.selectTab(AppTab.HOOKS) }
+                        modifier = Modifier.clickable {
+                            viewModel.selectTab(AppTab.HOOKS)
+                        }
                     ) {
                         Box(
                             modifier = Modifier
                                 .size(34.dp)
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(Brush.linearGradient(listOf(SunsetOrange, ElectricPurple))),
+                                .background(
+                                    Brush.linearGradient(
+                                        listOf(
+                                            SunsetOrange,
+                                            ElectricPurple
+                                        )
+                                    )
+                                ),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -174,7 +190,9 @@ fun ReelsStudioApp(
                                 modifier = Modifier.size(20.dp)
                             )
                         }
+
                         Spacer(modifier = Modifier.width(10.dp))
+
                         Column {
                             Text(
                                 text = "ریمیکس استودیوی ریلز",
@@ -182,6 +200,7 @@ fun ReelsStudioApp(
                                 fontSize = 14.5.sp,
                                 fontWeight = FontWeight.Bold
                             )
+
                             Text(
                                 text = "دستیار وایرال و هوش مصنوعی",
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -190,17 +209,23 @@ fun ReelsStudioApp(
                         }
                     }
 
-                    // Right side: VIP + Settings Button
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Surface(
                             shape = RoundedCornerShape(14.dp),
                             color = VipGold.copy(alpha = 0.15f),
                             modifier = Modifier
-                                .clickable { viewModel.selectTab(AppTab.VIP) }
+                                .clickable {
+                                    viewModel.selectTab(AppTab.VIP)
+                                }
                                 .testTag("top_vip_badge")
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
+                                modifier = Modifier.padding(
+                                    horizontal = 9.dp,
+                                    vertical = 5.dp
+                                ),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
@@ -209,9 +234,15 @@ fun ReelsStudioApp(
                                     tint = VipGold,
                                     modifier = Modifier.size(15.dp)
                                 )
+
                                 Spacer(modifier = Modifier.width(4.dp))
+
                                 Text(
-                                    text = if (vipState.isVipActive) "VIP" else "الماس VIP",
+                                    text = if (vipState.isVipActive) {
+                                        "VIP"
+                                    } else {
+                                        "الماس VIP"
+                                    },
                                     color = VipGold,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold
@@ -222,7 +253,9 @@ fun ReelsStudioApp(
                         Spacer(modifier = Modifier.width(6.dp))
 
                         IconButton(
-                            onClick = { viewModel.selectTab(AppTab.SETTINGS) },
+                            onClick = {
+                                viewModel.selectTab(AppTab.SETTINGS)
+                            },
                             modifier = Modifier
                                 .size(36.dp)
                                 .testTag("top_settings_button")
@@ -230,7 +263,13 @@ fun ReelsStudioApp(
                             Icon(
                                 imageVector = Icons.Default.Settings,
                                 contentDescription = "تنظیمات برنامه",
-                                tint = if (currentTab == AppTab.SETTINGS) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                tint = if (
+                                    currentTab == AppTab.SETTINGS
+                                ) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
                                 modifier = Modifier.size(22.dp)
                             )
                         }
@@ -239,43 +278,83 @@ fun ReelsStudioApp(
             }
         },
         bottomBar = {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                // Bottom Ad Banner (Tapsell simulated, hidden if VIP or ads toggled off)
-                AdBannerView(
+            Column(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+
+                // Real Google AdMob Banner
+                // Hidden automatically for VIP users
+                // or when ads are disabled in settings.
+                RealAdBannerView(
                     isVip = vipState.isVipActive,
                     isAdsEnabled = appSettings.isRealAdsEnabled,
-                    onUpgradeClick = { viewModel.selectTab(AppTab.VIP) }
+                    modifier = Modifier.fillMaxWidth()
                 )
 
-                // 6-Tab Navigation Bar with direct Settings and AI Assistant
                 NavigationBar(
                     containerColor = MaterialTheme.colorScheme.surface,
                     tonalElevation = 8.dp,
-                    modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars)
+                    modifier = Modifier.windowInsetsPadding(
+                        WindowInsets.navigationBars
+                    )
                 ) {
                     val tabs = listOf(
-                        Triple(AppTab.HOOKS, Icons.Default.Bolt, "قلاب‌ها"),
-                        Triple(AppTab.SCRIPTS, Icons.Default.Description, "سناریو"),
-                        Triple(AppTab.THUMBNAIL_STUDIO, Icons.Default.FormatPaint, "کاور"),
-                        Triple(AppTab.AI_ASSISTANT, Icons.Default.AutoAwesome, "دستیار"),
-                        Triple(AppTab.TOOLS, Icons.Default.Widgets, "ابزارها"),
-                        Triple(AppTab.SETTINGS, Icons.Default.Settings, "تنظیمات")
+                        Triple(
+                            AppTab.HOOKS,
+                            Icons.Default.Bolt,
+                            "قلاب‌ها"
+                        ),
+                        Triple(
+                            AppTab.SCRIPTS,
+                            Icons.Default.Description,
+                            "سناریو"
+                        ),
+                        Triple(
+                            AppTab.THUMBNAIL_STUDIO,
+                            Icons.Default.FormatPaint,
+                            "کاور"
+                        ),
+                        Triple(
+                            AppTab.AI_ASSISTANT,
+                            Icons.Default.AutoAwesome,
+                            "دستیار"
+                        ),
+                        Triple(
+                            AppTab.TOOLS,
+                            Icons.Default.Widgets,
+                            "ابزارها"
+                        ),
+                        Triple(
+                            AppTab.SETTINGS,
+                            Icons.Default.Settings,
+                            "تنظیمات"
+                        )
                     )
 
                     tabs.forEach { (tab, icon, label) ->
-                        val isSelected = currentTab == tab || (
-                            tab == AppTab.TOOLS && currentTab in listOf(
-                                AppTab.PLANNER,
-                                AppTab.CALCULATOR,
-                                AppTab.VIP
-                            )
-                        )
-                        val isAiTab = tab == AppTab.AI_ASSISTANT
-                        val isStudioTab = tab == AppTab.THUMBNAIL_STUDIO
+
+                        val isSelected =
+                            currentTab == tab ||
+                                (
+                                    tab == AppTab.TOOLS &&
+                                        currentTab in listOf(
+                                            AppTab.PLANNER,
+                                            AppTab.CALCULATOR,
+                                            AppTab.VIP
+                                        )
+                                    )
+
+                        val isAiTab =
+                            tab == AppTab.AI_ASSISTANT
+
+                        val isStudioTab =
+                            tab == AppTab.THUMBNAIL_STUDIO
 
                         NavigationBarItem(
                             selected = isSelected,
-                            onClick = { viewModel.selectTab(tab) },
+                            onClick = {
+                                viewModel.selectTab(tab)
+                            },
                             icon = {
                                 Icon(
                                     imageVector = icon,
@@ -288,67 +367,138 @@ fun ReelsStudioApp(
                                     text = label,
                                     fontSize = 10.5.sp,
                                     maxLines = 1,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                    fontWeight = if (
+                                        isSelected
+                                    ) {
+                                        FontWeight.Bold
+                                    } else {
+                                        FontWeight.Medium
+                                    }
                                 )
                             },
                             colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = if (isAiTab) ElectricPurple else if (isStudioTab) SunsetOrange else MaterialTheme.colorScheme.primary,
-                                selectedTextColor = if (isAiTab) ElectricPurple else if (isStudioTab) SunsetOrange else MaterialTheme.colorScheme.primary,
-                                indicatorColor = if (isAiTab) ElectricPurple.copy(alpha = 0.2f) else if (isStudioTab) SunsetOrange.copy(alpha = 0.2f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                selectedIconColor =
+                                    if (isAiTab) {
+                                        ElectricPurple
+                                    } else if (isStudioTab) {
+                                        SunsetOrange
+                                    } else {
+                                        MaterialTheme.colorScheme.primary
+                                    },
+
+                                selectedTextColor =
+                                    if (isAiTab) {
+                                        ElectricPurple
+                                    } else if (isStudioTab) {
+                                        SunsetOrange
+                                    } else {
+                                        MaterialTheme.colorScheme.primary
+                                    },
+
+                                indicatorColor =
+                                    if (isAiTab) {
+                                        ElectricPurple.copy(alpha = 0.2f)
+                                    } else if (isStudioTab) {
+                                        SunsetOrange.copy(alpha = 0.2f)
+                                    } else {
+                                        MaterialTheme.colorScheme.primary
+                                            .copy(alpha = 0.2f)
+                                    },
+
+                                unselectedIconColor =
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                        .copy(alpha = 0.7f),
+
+                                unselectedTextColor =
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                        .copy(alpha = 0.7f)
                             ),
-                            modifier = Modifier.testTag("tab_${tab.name.lowercase()}")
+                            modifier = Modifier.testTag(
+                                "tab_${tab.name.lowercase()}"
+                            )
                         )
                     }
                 }
             }
         }
     ) { innerPadding ->
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
             when (currentTab) {
-                AppTab.HOOKS -> ViralHooksScreen(viewModel = viewModel)
-                AppTab.SCRIPTS -> ScriptMakerScreen(viewModel = viewModel)
-                AppTab.THUMBNAIL_STUDIO -> ThumbnailStudioScreen(viewModel = viewModel)
-                AppTab.AI_ASSISTANT -> AiAssistantScreen(viewModel = viewModel)
-                AppTab.TOOLS -> ToolsHubScreen(viewModel = viewModel)
-                AppTab.PLANNER -> ContentPlannerScreen(
-                    viewModel = viewModel,
-                    onBackClick = { viewModel.selectTab(AppTab.TOOLS) }
-                )
-                AppTab.CALCULATOR -> EngagementCalculatorScreen(
-                    viewModel = viewModel,
-                    onBackClick = { viewModel.selectTab(AppTab.TOOLS) }
-                )
-                AppTab.VIP -> VipStoreScreen(
-                    viewModel = viewModel,
-                    onBackClick = { viewModel.selectTab(AppTab.TOOLS) }
-                )
-                AppTab.SETTINGS -> SettingsScreen(
-                    viewModel = viewModel,
-                    onBackClick = { viewModel.selectTab(AppTab.TOOLS) }
-                )
+
+                AppTab.HOOKS ->
+                    ViralHooksScreen(viewModel = viewModel)
+
+                AppTab.SCRIPTS ->
+                    ScriptMakerScreen(viewModel = viewModel)
+
+                AppTab.THUMBNAIL_STUDIO ->
+                    ThumbnailStudioScreen(viewModel = viewModel)
+
+                AppTab.AI_ASSISTANT ->
+                    AiAssistantScreen(viewModel = viewModel)
+
+                AppTab.TOOLS ->
+                    ToolsHubScreen(viewModel = viewModel)
+
+                AppTab.PLANNER ->
+                    ContentPlannerScreen(
+                        viewModel = viewModel,
+                        onBackClick = {
+                            viewModel.selectTab(AppTab.TOOLS)
+                        }
+                    )
+
+                AppTab.CALCULATOR ->
+                    EngagementCalculatorScreen(
+                        viewModel = viewModel,
+                        onBackClick = {
+                            viewModel.selectTab(AppTab.TOOLS)
+                        }
+                    )
+
+                AppTab.VIP ->
+                    VipStoreScreen(
+                        viewModel = viewModel,
+                        onBackClick = {
+                            viewModel.selectTab(AppTab.TOOLS)
+                        }
+                    )
+
+                AppTab.SETTINGS ->
+                    SettingsScreen(
+                        viewModel = viewModel,
+                        onBackClick = {
+                            viewModel.selectTab(AppTab.TOOLS)
+                        }
+                    )
             }
         }
     }
 
-    // Rewarded Ad Modal
     RewardedAdDialog(
         hook = rewardedHook,
         isWatching = isAdWatching,
         countdown = adCountdown,
-        onStartWatch = { viewModel.startWatchingRewardedAd() },
-        onDismiss = { viewModel.dismissRewardedAdPrompt() }
+        onStartWatch = {
+            viewModel.startWatchingRewardedAd()
+        },
+        onDismiss = {
+            viewModel.dismissRewardedAdPrompt()
+        }
     )
 
-    // VIP Checkout Modal
     VipCheckoutDialog(
         plan = checkoutPlan,
-        onConfirm = { viewModel.confirmPurchase() },
-        onDismiss = { viewModel.dismissCheckout() }
+        onConfirm = {
+            viewModel.confirmPurchase()
+        },
+        onDismiss = {
+            viewModel.dismissCheckout()
+        }
     )
 }
