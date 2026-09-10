@@ -66,17 +66,20 @@ import com.example.ui.theme.ReelsStudioTheme
 import com.example.ui.theme.SunsetOrange
 import com.example.ui.theme.SurfaceCard
 import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.VipGold
+import com.example.ui.viewmodel.ReelsViewModel
 import kotlinx.coroutines.flow.collectLatest
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
         setContent {
             ReelsStudioTheme {
-                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                CompositionLocalProvider(
+                    LocalLayoutDirection provides LayoutDirection.Rtl
+                ) {
                     ReelsStudioApp()
                 }
             }
@@ -94,6 +97,7 @@ fun ReelsStudioApp(
     val isAdWatching by viewModel.isAdWatching.collectAsState()
     val adCountdown by viewModel.adCountdown.collectAsState()
     val checkoutPlan by viewModel.selectedCheckoutPlan.collectAsState()
+
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -101,7 +105,11 @@ fun ReelsStudioApp(
 
     LaunchedEffect(Unit) {
         viewModel.toastMessage.collectLatest { message ->
-            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                context,
+                message,
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 
@@ -110,27 +118,55 @@ fun ReelsStudioApp(
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.safeDrawing),
         containerColor = Color.Transparent,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = {
+            SnackbarHost(snackbarHostState)
+        },
         bottomBar = {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                // Bottom Ad Banner (Tapsell simulated, hidden if VIP)
+            Column(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                // Bottom Ad Banner
                 AdBannerView(
                     isVip = vipState.isVipActive,
-                    onUpgradeClick = { viewModel.selectTab(AppTab.VIP) }
+                    onUpgradeClick = {
+                        viewModel.selectTab(AppTab.VIP)
+                    }
                 )
 
                 // Navigation Bar
                 NavigationBar(
                     containerColor = SurfaceCard,
                     tonalElevation = 8.dp,
-                    modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars)
+                    modifier = Modifier.windowInsetsPadding(
+                        WindowInsets.navigationBars
+                    )
                 ) {
                     val tabs = listOf(
-                        Triple(AppTab.HOOKS, Icons.Default.Bolt, "قلاب‌ها"),
-                        Triple(AppTab.SCRIPTS, Icons.Default.Description, "سناریوساز"),
-                        Triple(AppTab.PLANNER, Icons.Default.CalendarMonth, "تقویم"),
-                        Triple(AppTab.CALCULATOR, Icons.Default.Analytics, "تعامل"),
-                        Triple(AppTab.VIP, Icons.Default.WorkspacePremium, "VIP")
+                        Triple(
+                            AppTab.HOOKS,
+                            Icons.Default.Bolt,
+                            "قلاب‌ها"
+                        ),
+                        Triple(
+                            AppTab.SCRIPTS,
+                            Icons.Default.Description,
+                            "سناریوساز"
+                        ),
+                        Triple(
+                            AppTab.PLANNER,
+                            Icons.Default.CalendarMonth,
+                            "تقویم"
+                        ),
+                        Triple(
+                            AppTab.CALCULATOR,
+                            Icons.Default.Analytics,
+                            "تعامل"
+                        ),
+                        Triple(
+                            AppTab.VIP,
+                            Icons.Default.WorkspacePremium,
+                            "VIP"
+                        )
                     )
 
                     tabs.forEach { (tab, icon, label) ->
@@ -139,7 +175,9 @@ fun ReelsStudioApp(
 
                         NavigationBarItem(
                             selected = isSelected,
-                            onClick = { viewModel.selectTab(tab) },
+                            onClick = {
+                                viewModel.selectTab(tab)
+                            },
                             icon = {
                                 Icon(
                                     imageVector = icon,
@@ -151,38 +189,67 @@ fun ReelsStudioApp(
                                 Text(
                                     text = label,
                                     fontSize = 10.sp,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                    fontWeight = if (isSelected) {
+                                        FontWeight.Bold
+                                    } else {
+                                        FontWeight.Medium
+                                    }
                                 )
                             },
                             colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = if (isVipTab) VipGold else Color.White,
-                                selectedTextColor = if (isVipTab) VipGold else SunsetOrange,
-                                indicatorColor = if (isVipTab) VipGold.copy(alpha = 0.2f) else SunsetOrange,
-                                unselectedIconColor = if (isVipTab) VipGold.copy(alpha = 0.7f) else TextMuted,
+                                selectedIconColor = if (isVipTab) {
+                                    VipGold
+                                } else {
+                                    Color.White
+                                },
+                                selectedTextColor = if (isVipTab) {
+                                    VipGold
+                                } else {
+                                    SunsetOrange
+                                },
+                                indicatorColor = if (isVipTab) {
+                                    VipGold.copy(alpha = 0.2f)
+                                } else {
+                                    SunsetOrange
+                                },
+                                unselectedIconColor = if (isVipTab) {
+                                    VipGold.copy(alpha = 0.7f)
+                                } else {
+                                    TextMuted
+                                },
                                 unselectedTextColor = TextMuted
                             ),
-                            modifier = Modifier.testTag("tab_${tab.name.lowercase()}")
+                            modifier = Modifier.testTag(
+                                "tab_${tab.name.lowercase()}"
+                            )
                         )
                     }
                 }
             }
         }
     ) { innerPadding ->
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
+
             // About button
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 4.dp),
+                    .padding(
+                        horizontal = 12.dp,
+                        vertical = 4.dp
+                    ),
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(
-                    onClick = { showAboutDialog = true },
+                    onClick = {
+                        showAboutDialog = true
+                    },
                     modifier = Modifier.size(36.dp)
                 ) {
                     Icon(
@@ -199,11 +266,35 @@ fun ReelsStudioApp(
                     .weight(1f)
             ) {
                 when (currentTab) {
-                    AppTab.HOOKS -> ViralHooksScreen(viewModel = viewModel)
-                    AppTab.SCRIPTS -> ScriptMakerScreen(viewModel = viewModel)
-                    AppTab.PLANNER -> ContentPlannerScreen(viewModel = viewModel)
-                    AppTab.CALCULATOR -> EngagementCalculatorScreen(viewModel = viewModel)
-                    AppTab.VIP -> VipStoreScreen(viewModel = viewModel)
+                    AppTab.HOOKS -> {
+                        ViralHooksScreen(
+                            viewModel = viewModel
+                        )
+                    }
+
+                    AppTab.SCRIPTS -> {
+                        ScriptMakerScreen(
+                            viewModel = viewModel
+                        )
+                    }
+
+                    AppTab.PLANNER -> {
+                        ContentPlannerScreen(
+                            viewModel = viewModel
+                        )
+                    }
+
+                    AppTab.CALCULATOR -> {
+                        EngagementCalculatorScreen(
+                            viewModel = viewModel
+                        )
+                    }
+
+                    AppTab.VIP -> {
+                        VipStoreScreen(
+                            viewModel = viewModel
+                        )
+                    }
                 }
             }
         }
@@ -212,7 +303,9 @@ fun ReelsStudioApp(
     // About App Modal
     if (showAboutDialog) {
         AboutDialog(
-            onDismiss = { showAboutDialog = false }
+            onDismiss = {
+                showAboutDialog = false
+            }
         )
     }
 
@@ -221,14 +314,22 @@ fun ReelsStudioApp(
         hook = rewardedHook,
         isWatching = isAdWatching,
         countdown = adCountdown,
-        onStartWatch = { viewModel.startWatchingRewardedAd() },
-        onDismiss = { viewModel.dismissRewardedAdPrompt() }
+        onStartWatch = {
+            viewModel.startWatchingRewardedAd()
+        },
+        onDismiss = {
+            viewModel.dismissRewardedAdPrompt()
+        }
     )
 
     // VIP Checkout Modal
     VipCheckoutDialog(
         plan = checkoutPlan,
-        onConfirm = { viewModel.confirmPurchase() },
-        onDismiss = { viewModel.dismissCheckout() }
+        onConfirm = {
+            viewModel.confirmPurchase()
+        },
+        onDismiss = {
+            viewModel.dismissCheckout()
+        }
     )
 }
