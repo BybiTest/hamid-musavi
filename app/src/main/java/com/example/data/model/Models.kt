@@ -1,6 +1,9 @@
 package com.example.data.model
 
-enum class HookCategory(val titleFa: String, val iconName: String) {
+enum class HookCategory(
+    val titleFa: String,
+    val iconName: String
+) {
     ALL("همه", "AllInclusive"),
     ONLINE_SHOP("فروش و آنلاین‌شاپ", "ShoppingBag"),
     EDUCATION("آموزش و ترفند", "School"),
@@ -9,6 +12,9 @@ enum class HookCategory(val titleFa: String, val iconName: String) {
     TECH_AI("تکنولوژی و هوش مصنوعی", "Memory")
 }
 
+/**
+ * مدل اصلی قلاب‌هایی که در صفحه ViralHooksScreen نمایش داده می‌شوند.
+ */
 data class HookItem(
     val id: String,
     val title: String,
@@ -20,6 +26,9 @@ data class HookItem(
     val estimatedViewPotential: String = "+500K"
 )
 
+/**
+ * مدل سازنده سناریو.
+ */
 data class ScriptTemplate(
     val id: String,
     val title: String,
@@ -34,6 +43,9 @@ data class ScriptTemplate(
     val placeholderObstacle: String = "بزرگترین اشتباه رایج"
 )
 
+/**
+ * مدل قدیمی/اصلی تقویم محتوا که PreloadedContent از آن استفاده می‌کند.
+ */
 data class ContentDayPlan(
     val dayNumber: Int,
     val title: String,
@@ -41,6 +53,50 @@ data class ContentDayPlan(
     val hookIdea: String,
     val filmingTip: String,
     val isVipOnly: Boolean = false
+)
+
+/**
+ * مدل سازگار با ساختار جدید ViewModel برای برنامه‌ریزی محتوا.
+ */
+data class ContentPlanDay(
+    val dayNumber: Int,
+    val title: String,
+    val suggestedHook: String,
+    val contentType: String,
+    val description: String,
+    val callToAction: String,
+    val isVipOnly: Boolean = false
+)
+
+/**
+ * مدل سازگار با ViewModel برای قلاب‌های قابل بازشدن.
+ */
+data class ViralHook(
+    val id: Int,
+    val title: String,
+    val template: String,
+    val category: HookCategory = HookCategory.ALL,
+    val isVipOnly: Boolean = false
+)
+
+/**
+ * مدل قالب Thumbnail که ViewModel برای Thumbnail Studio استفاده می‌کند.
+ */
+data class ThumbnailTemplate(
+    val id: String,
+    val defaultTitle: String,
+    val defaultSubtitle: String,
+    val defaultBadge: String,
+    val isVipOnly: Boolean = false
+)
+
+/**
+ * مدل پلن VIP.
+ */
+data class VipPlan(
+    val title: String,
+    val price: String = "",
+    val durationDays: Int = 30
 )
 
 data class EngagementResult(
@@ -52,7 +108,9 @@ data class EngagementResult(
     val actionTips: List<String>
 )
 
-enum class AppTab(val titleFa: String) {
+enum class AppTab(
+    val titleFa: String
+) {
     HOOKS("قلاب‌ها"),
     SCRIPTS("سناریوساز"),
     THUMBNAIL_STUDIO("کاور ساز"),
@@ -64,7 +122,9 @@ enum class AppTab(val titleFa: String) {
     SETTINGS("تنظیمات")
 }
 
-enum class CoverCategory(val titleFa: String) {
+enum class CoverCategory(
+    val titleFa: String
+) {
     ALL("همه قالب‌ها"),
     TECH("تکنولوژی و هوش مصنوعی"),
     FINANCE("مالی، بیزینس و موفقیت"),
