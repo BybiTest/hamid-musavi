@@ -5,8 +5,10 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,8 +22,10 @@ import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -34,18 +38,22 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.model.AppTab
+import com.example.ui.components.AboutDialog
 import com.example.ui.components.AdBannerView
 import com.example.ui.components.RewardedAdDialog
 import com.example.ui.components.VipCheckoutDialog
@@ -57,12 +65,9 @@ import com.example.ui.screens.ViralHooksScreen
 import com.example.ui.theme.ReelsStudioTheme
 import com.example.ui.theme.SunsetOrange
 import com.example.ui.theme.SurfaceCard
-import com.example.ui.theme.SurfaceCardBorder
-import com.example.ui.theme.SurfaceCardElevated
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.VipGold
-import com.example.ui.viewmodel.ReelsViewModel
 import kotlinx.coroutines.flow.collectLatest
 
 class MainActivity : ComponentActivity() {
@@ -91,6 +96,8 @@ fun ReelsStudioApp(
     val checkoutPlan by viewModel.selectedCheckoutPlan.collectAsState()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
+
+    var showAboutDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.toastMessage.collectLatest { message ->
@@ -161,19 +168,52 @@ fun ReelsStudioApp(
             }
         }
     ) { innerPadding ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            when (currentTab) {
-                AppTab.HOOKS -> ViralHooksScreen(viewModel = viewModel)
-                AppTab.SCRIPTS -> ScriptMakerScreen(viewModel = viewModel)
-                AppTab.PLANNER -> ContentPlannerScreen(viewModel = viewModel)
-                AppTab.CALCULATOR -> EngagementCalculatorScreen(viewModel = viewModel)
-                AppTab.VIP -> VipStoreScreen(viewModel = viewModel)
+            // About button
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = { showAboutDialog = true },
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = "درباره برنامه",
+                        tint = TextMuted
+                    )
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .weight(1f)
+            ) {
+                when (currentTab) {
+                    AppTab.HOOKS -> ViralHooksScreen(viewModel = viewModel)
+                    AppTab.SCRIPTS -> ScriptMakerScreen(viewModel = viewModel)
+                    AppTab.PLANNER -> ContentPlannerScreen(viewModel = viewModel)
+                    AppTab.CALCULATOR -> EngagementCalculatorScreen(viewModel = viewModel)
+                    AppTab.VIP -> VipStoreScreen(viewModel = viewModel)
+                }
             }
         }
+    }
+
+    // About App Modal
+    if (showAboutDialog) {
+        AboutDialog(
+            onDismiss = { showAboutDialog = false }
+        )
     }
 
     // Rewarded Ad Modal
