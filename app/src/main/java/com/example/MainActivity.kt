@@ -46,7 +46,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -125,7 +124,6 @@ fun ReelsStudioApp(
             Column(
                 modifier = Modifier.fillMaxWidth()
             ) {
-                // Bottom Ad Banner
                 AdBannerView(
                     isVip = vipState.isVipActive,
                     onUpgradeClick = {
@@ -133,7 +131,6 @@ fun ReelsStudioApp(
                     }
                 )
 
-                // Navigation Bar
                 NavigationBar(
                     containerColor = SurfaceCard,
                     tonalElevation = 8.dp,
@@ -218,9 +215,6 @@ fun ReelsStudioApp(
                                     TextMuted
                                 },
                                 unselectedTextColor = TextMuted
-                            ),
-                            modifier = Modifier.testTag(
-                                "tab_${tab.name.lowercase()}"
                             )
                         )
                     }
@@ -235,7 +229,6 @@ fun ReelsStudioApp(
                 .padding(innerPadding)
         ) {
 
-            // About button
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -300,7 +293,6 @@ fun ReelsStudioApp(
         }
     }
 
-    // About App Modal
     if (showAboutDialog) {
         AboutDialog(
             onDismiss = {
@@ -309,7 +301,6 @@ fun ReelsStudioApp(
         )
     }
 
-    // Rewarded Ad Modal
     RewardedAdDialog(
         hook = rewardedHook,
         isWatching = isAdWatching,
@@ -322,7 +313,6 @@ fun ReelsStudioApp(
         }
     )
 
-    // VIP Checkout Modal
     VipCheckoutDialog(
         plan = checkoutPlan,
         onConfirm = {
