@@ -3,9 +3,7 @@ package com.example.ui.components
 import android.view.ViewGroup
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -15,7 +13,7 @@ import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
 
 private const val TEST_BANNER_AD_UNIT_ID =
-    "ca-app-pub-3940256099942544/6300978111"
+    "ca-app-pub-3940256099942544/9214589741"
 
 @Composable
 fun RealAdBannerView(
@@ -46,11 +44,6 @@ fun RealAdBannerView(
                 loadAd(
                     AdRequest.Builder().build()
                 )
-            }
-        },
-        update = { adView ->
-            if (adView.adSize == null) {
-                adView.setAdSize(AdSize.BANNER)
             }
         }
     )
