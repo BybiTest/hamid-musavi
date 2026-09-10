@@ -25,12 +25,21 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.viewmodel.ReelsViewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
-fun AiStudioScreen(viewModel: ReelsViewModel) {
-    val studioState by viewModel.aiStudioState.collectAsState()
+fun AiStudioScreen() {
+    var selectedMode by remember { mutableStateOf("HOOK_GENERATOR") }
+    var topicInput by remember { mutableStateOf("") }
+    var targetAudience by remember { mutableStateOf("") }
+    var selectedTone by remember { mutableStateOf("هیجانی و شوکه‌کننده") }
+    var isGenerating by remember { mutableStateOf(false) }
+    var aiResult by remember { mutableStateOf("") }
+    var showResult by remember { mutableStateOf(false) }
+    
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
     
     Column(
@@ -52,18 +61,18 @@ fun AiStudioScreen(viewModel: ReelsViewModel) {
         ) {
             ModeChip(
                 text = "قلاب‌های وایرال",
-                isSelected = studioState.selectedMode == "HOOK_GENERATOR",
-                onClick = { viewModel.setAiStudioMode("HOOK_GENERATOR") }
+                isSelected = selectedMode == "HOOK_GENERATOR",
+                onClick = { selectedMode = "HOOK_GENERATOR" }
             )
             ModeChip(
                 text = "سناریونویسی کامل",
-                isSelected = studioState.selectedMode == "SCRIPT_WRITER",
-                onClick = { viewModel.setAiStudioMode("SCRIPT_WRITER") }
+                isSelected = selectedMode == "SCRIPT_WRITER",
+                onClick = { selectedMode = "SCRIPT_WRITER" }
             )
             ModeChip(
                 text = "هشتگ و کپشن",
-                isSelected = studioState.selectedMode == "HASHTAG_FINDER",
-                onClick = { viewModel.setAiStudioMode("HASHTAG_FINDER") }
+                isSelected = selectedMode == "HASHTAG_FINDER",
+                onClick = { selectedMode = "HASHTAG_FINDER" }
             )
         }
         
@@ -75,8 +84,8 @@ fun AiStudioScreen(viewModel: ReelsViewModel) {
             fontWeight = FontWeight.Medium
         )
         OutlinedTextField(
-            value = studioState.topicInput,
-            onValueChange = { viewModel.updateAiStudioInputs(topic = it) },
+            value = topicInput,
+            onValueChange = { topicInput = it },
             placeholder = { Text("مثلاً: نحوه لاغری بدون رژیم، آموزش فتوشاپ، ترفندهای آیفون") },
             modifier = Modifier.fillMaxWidth(),
             minLines = 2
@@ -90,8 +99,8 @@ fun AiStudioScreen(viewModel: ReelsViewModel) {
             fontWeight = FontWeight.Medium
         )
         OutlinedTextField(
-            value = studioState.targetAudience,
-            onValueChange = { viewModel.updateAiStudioInputs(audience = it) },
+            value = targetAudience,
+            onValueChange = { targetAudience = it },
             placeholder = { Text("مثلاً: کنکوری‌ها، خانم‌های خانه‌دار، کارآفرینان") },
             modifier = Modifier.fillMaxWidth()
         )
@@ -109,26 +118,85 @@ fun AiStudioScreen(viewModel: ReelsViewModel) {
         ) {
             ToneChip(
                 text = "هیجانی و شوکه‌کننده",
-                isSelected = studioState.selectedTone == "هیجانی و شوکه‌کننده",
-                onClick = { viewModel.updateAiStudioInputs(tone = "هیجانی و شوکه‌کننده") }
+                isSelected = selectedTone == "هیجانی و شوکه‌کننده",
+                onClick = { selectedTone = "هیجانی و شوکه‌کننده" }
             )
             ToneChip(
                 text = "آموزشی و معتبر",
-                isSelected = studioState.selectedTone == "آموزشی و معتبر",
-                onClick = { viewModel.updateAiStudioInputs(tone = "آموزشی و معتبر") }
+                isSelected = selectedTone == "آموزشی و معتبر",
+                onClick = { selectedTone = "آموزشی و معتبر" }
             )
             ToneChip(
                 text = "طنز و کنایه‌آمیز",
-                isSelected = studioState.selectedTone == "طنز و کنایه‌آمیز",
-                onClick = { viewModel.updateAiStudioInputs(tone = "طنز و کنایه‌آمیز") }
+                isSelected = selectedTone == "طنز و کنایه‌آمیز",
+                onClick = { selectedTone = "طنز و کنایه‌آمیز" }
             )
         }
         
         Spacer(modifier = Modifier.height(24.dp))
         
         Button(
-            onClick = { viewModel.generateAiStudioContent() },
-            enabled = !studioState.isGenerating,
+            onClick = {
+                if (topicInput.isBlank()) return@Button
+                
+                isGenerating = true
+                showResult = false
+                
+                scope.launch {
+                    delay(1000)
+                    
+                    aiResult = when (selectedMode) {
+                        "HOOK_GENERATOR" -> """
+                             ۵ قلاب پیشنهادی برای «$topicInput»:
+                            
+                            ۱. «باور نمی‌کنی درباره $topicInput این نکته وجود داشته باشه!»
+                            ۲. «اگر درباره $topicInput این اشتباه رو می‌کنی، همین الان ببین.»
+                            ۳. «قبل از اینکه سراغ $topicInput بری، اینو بدون.»
+                            ۴. «فقط ۳۰ ثانیه وقت بذار تا نکته مهم $topicInput رو بفهمی.»
+                            ۵. «بیشتر مردم درباره $topicInput این قسمت رو نمی‌دونن.»
+                            
+                            💡 نکته: لحن $selectedTone را در اجرا حفظ کن.
+                            مخاطب هدف: ${targetAudience.ifBlank { "عموم کاربران" }}
+                        """.trimIndent()
+                        
+                        "SCRIPT_WRITER" -> """
+                            📝 سناریوی کامل برای «$topicInput»:
+                            
+                            ⏱️ قلاب (۰-۳ ثانیه):
+                            «بیشتر مردم درباره $topicInput یک اشتباه مهم انجام می‌دهند.»
+                            
+                            🎯 بدنه (۳-۳۵ ثانیه):
+                            • نکته اول: مشکل را مشخص کن
+                            • نکته دوم: راه‌حل را ساده توضیح بده
+                            • نکته سوم: نتیجه را سریع نشان بده
+                            
+                            🎬 CTA (۳۵-۴۵ ثانیه):
+                            «اگر این نکته برات مفید بود ذخیره‌اش کن.»
+                            
+                            🎯 مخاطب: ${targetAudience.ifBlank { "عموم کاربران" }}
+                            🎨 لحن: $selectedTone
+                        """.trimIndent()
+                        
+                        "HASHTAG_FINDER" -> """
+                            #️⃣ کپشن و هشتگ برای «$topicInput»:
+                            
+                            📝 کپشن:
+                            اگر درباره $topicInput کنجکاوی، این ویدیو رو تا آخر ببین 👀
+                            
+                            #️⃣ هشتگ‌ها:
+                            #$topicInput #تولید_محتوا #ریلز #اینستاگرام #وایرال #${targetAudience.ifBlank { "آموزش" }}
+                            
+                             لحن: $selectedTone
+                        """.trimIndent()
+                        
+                        else -> ""
+                    }
+                    
+                    showResult = true
+                    isGenerating = false
+                }
+            },
+            enabled = !isGenerating,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
@@ -137,7 +205,7 @@ fun AiStudioScreen(viewModel: ReelsViewModel) {
                 containerColor = Color(0xFFFF6B35)
             )
         ) {
-            if (studioState.isGenerating) {
+            if (isGenerating) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(24.dp),
                     color = Color.White
@@ -168,7 +236,7 @@ fun AiStudioScreen(viewModel: ReelsViewModel) {
         Spacer(modifier = Modifier.height(24.dp))
         
         AnimatedVisibility(
-            visible = studioState.showResult,
+            visible = showResult,
             enter = fadeIn(),
             exit = fadeOut()
         ) {
@@ -185,9 +253,9 @@ fun AiStudioScreen(viewModel: ReelsViewModel) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = when (studioState.selectedMode) {
-                            "HOOK_GENERATOR" -> "🔥 قلاب‌های تولید شده"
-                            "SCRIPT_WRITER" -> " سناریوی کامل"
+                        text = when (selectedMode) {
+                            "HOOK_GENERATOR" -> " قلاب‌های تولید شده"
+                            "SCRIPT_WRITER" -> "📝 سناریوی کامل"
                             "HASHTAG_FINDER" -> "#️⃣ هشتگ و کپشن"
                             else -> "نتیجه"
                         },
@@ -199,7 +267,7 @@ fun AiStudioScreen(viewModel: ReelsViewModel) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         IconButton(onClick = {
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            val clip = ClipData.newPlainText("AI Result", studioState.aiResult)
+                            val clip = ClipData.newPlainText("AI Result", aiResult)
                             clipboard.setPrimaryClip(clip)
                         }) {
                             Icon(
@@ -208,7 +276,10 @@ fun AiStudioScreen(viewModel: ReelsViewModel) {
                                 tint = Color.White
                             )
                         }
-                        IconButton(onClick = { viewModel.clearAiStudioResult() }) {
+                        IconButton(onClick = { 
+                            showResult = false
+                            aiResult = ""
+                        }) {
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "بستن",
@@ -221,20 +292,11 @@ fun AiStudioScreen(viewModel: ReelsViewModel) {
                 Spacer(modifier = Modifier.height(12.dp))
                 
                 Text(
-                    text = studioState.aiResult,
+                    text = aiResult,
                     fontSize = 16.sp,
                     color = Color.White,
                     lineHeight = 24.sp
                 )
-                
-                if (studioState.errorMessage != null) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = "⚠️ ${studioState.errorMessage}",
-                        fontSize = 14.sp,
-                        color = Color(0xFFFF6B35)
-                    )
-                }
             }
         }
     }
