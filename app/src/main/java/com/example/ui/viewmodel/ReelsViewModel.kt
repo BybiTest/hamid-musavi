@@ -4,14 +4,19 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.local.AppDatabase
+import com.example.data.local.AppSettingsEntity
 import com.example.data.local.SavedScriptEntity
-import com.example.data.local.VipStateEntity
 import com.example.data.model.AppTab
 import com.example.data.model.ContentDayPlan
+import com.example.data.model.CoverCategory
+import com.example.data.model.CoverTemplate
 import com.example.data.model.EngagementResult
 import com.example.data.model.HookCategory
 import com.example.data.model.HookItem
 import com.example.data.model.ScriptTemplate
+import com.example.data.model.ThumbnailTemplate
+import com.example.data.model.VipPlan
+import com.example.data.model.ViralHook
 import com.example.data.repository.ReelsRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -21,81 +26,119 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-data class HooksUiState(
-    val allHooks: List<HookItem> = emptyList(),
-    val selectedCategory: HookCategory = HookCategory.ALL,
-    val searchQuery: String = "",
-    val showOnlyFavorites: Boolean = false,
-    val favoriteIds: Set<String> = emptySet(),
-    val unlockedHookIds: Set<String> = emptySet(),
-    val isVipUser: Boolean = false
+data class VipUiState(
+    val isVipActive: Boolean = false,
+    val unlockedHookIds: Set<Int> = emptySet(),
+    val favoriteHookIds: Set<Int> = emptySet(),
+    val completedPlannerDays: Set<Int> = emptySet(),
+    val planName: String = "رایگان",
+    val expirationDateString: String = "نامحدود"
 )
 
-data class ScriptMakerUiState(
-    val templates: List<ScriptTemplate> = emptyList(),
-    val selectedTemplate: ScriptTemplate? = null,
-    val customTopic: String = "",
-    val customBenefit: String = "",
-    val customObstacle: String = "",
-    val customCta: String = "",
-    val generatedScript: String = "",
-    val isVipUser: Boolean = false
+data class ScriptDraftState(
+    val title: String = "",
+    val hookText: String = "",
+    val bodyText: String = "",
+    val ctaText: String = "",
+    val notes: String = "",
+    val editingScriptId: Int? = null
 )
 
-data class CalculatorUiState(
+data class EngagementCalculatorState(
     val followers: String = "15000",
-    val likes: String = "850",
-    val comments: String = "120",
-    val saves: String = "430",
-    val shares: String = "95",
-    val result: EngagementResult? = null
+    val likes: String = "1200",
+    val comments: String = "140",
+    val shares: String = "85",
+    val saves: String = "320",
+    val calculatedRate: Double = 0.0,
+    val engagementGrade: String = "خوب",
+    val recommendation: String = ""
+)
+
+data class ThumbnailStudioUiState(
+    val currentRatio: String = "9:16",
+    val selectedTemplateId: String = "tech_hacks",
+    val primaryTitle: String = "ترفند مخفی ریلز!",
+    val subtitle: String = "چطور در ۳ روز به اکسپلور برسی؟",
+    val badgeText: String = "شوکه‌کننده 🔥",
+    val showBadge: Boolean = true,
+    val badgePosition: String = "TOP_RIGHT",
+    val selectedGradientIndex: Int = 0,
+    val isAiGeneratingTitle: Boolean = false
+)
+
+data class CoverStudioUiState(
+    val selectedTemplateId: String = "",
+    val selectedCategory: CoverCategory = CoverCategory.ALL,
+    val headlineText: String = "ترفند مخفی ریلز!",
+    val subHeadlineText: String = "توضیحات تکمیلی جذاب",
+    val badgeText: String = "جدید",
+    val isYoutubeShortsBadge: Boolean = false,
+    val customImageUri: String? = null,
+    val selectedAccentColor: Long = 0xFFFF6B35,
+    val selectedTextColor: Long = 0xFFFFFFFF,
+    val isAiGeneratingTitle: Boolean = false
+)
+
+data class AiAssistantUiState(
+    val activeSubTab: Int = 0,
+    val chatInput: String = "",
+    val chatMessages: List<ChatMessage> = emptyList(),
+    val isChatTyping: Boolean = false,
+    val errorMessage: String? = null,
+    val selectedMode: String = "HOOK_GENERATOR",
+    val topicInput: String = "",
+    val targetAudience: String = "",
+    val tone: String = "هیجانی و شوکه‌کننده",
+    val isGenerating: Boolean = false,
+    val aiResult: String = ""
+)
+
+data class ChatMessage(
+    val id: Int = (0..999999).random(),
+    val text: String,
+    val isUser: Boolean
 )
 
 class ReelsViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository: ReelsRepository
+    private val db = AppDatabase.getInstance(application)
 
     init {
-        val db = AppDatabase.getInstance(application)
         repository = ReelsRepository(db.reelsDao())
     }
 
-    // Active Navigation Tab
     private val _currentTab = MutableStateFlow(AppTab.HOOKS)
     val currentTab: StateFlow<AppTab> = _currentTab.asStateFlow()
 
-    // Snackbars / Feedback Messages
     private val _toastMessage = MutableSharedFlow<String>()
     val toastMessage: SharedFlow<String> = _toastMessage.asSharedFlow()
 
-    // VIP State Flow from DB
-    val vipState: StateFlow<VipStateEntity> = repository.vipState.stateIn(
+    val appSettings: StateFlow<AppSettingsEntity> = db.reelsDao().getSettings().stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5000),
-        VipStateEntity()
+        AppSettingsEntity()
     )
 
-    // Saved Scripts Flow from DB
-    val savedScripts: StateFlow<List<SavedScriptEntity>> = repository.allSavedScripts.stateIn(
+    private val _vipState = MutableStateFlow(VipUiState())
+    val vipState: StateFlow<VipUiState> = _vipState.asStateFlow()
+
+    val savedScripts: StateFlow<List<SavedScriptEntity>> = db.reelsDao().getAllScripts().stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5000),
         emptyList()
     )
 
-    // Planner Progress Flow from DB
-    val plannerProgress: StateFlow<Map<Int, Boolean>> = repository.plannerProgress.stateIn(
-        viewModelScope,
-        SharingStarted.WhileSubscribed(5000),
-        emptyMap()
-    )
+    val plannerProgress: StateFlow<Map<Int, Boolean>> = vipState.map { state ->
+        (1..30).associateWith { it in state.completedPlannerDays }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), (1..30).associateWith { false })
 
-    // Hooks State
-    private val _selectedCategory = MutableStateFlow(HookCategory.ALL)
-    val selectedCategory: StateFlow<HookCategory> = _selectedCategory.asStateFlow()
+    private val _selectedCategory = MutableStateFlow<HookCategory?>(null)
+    val selectedCategory: StateFlow<HookCategory?> = _selectedCategory.asStateFlow()
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
@@ -103,30 +146,23 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
     private val _showOnlyFavorites = MutableStateFlow(false)
     val showOnlyFavorites: StateFlow<Boolean> = _showOnlyFavorites.asStateFlow()
 
-    val favoriteIds: StateFlow<Set<String>> = repository.favoriteHookIds.combine(repository.favoriteHookIds) { ids, _ ->
-        ids.toSet()
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+    private val _thumbnailStudioState = MutableStateFlow(ThumbnailStudioUiState())
+    val thumbnailStudioState: StateFlow<ThumbnailStudioUiState> = _thumbnailStudioState.asStateFlow()
 
-    val allHooks: List<HookItem> = repository.getAllHooks()
-    val allTemplates: List<ScriptTemplate> = repository.getAllTemplates()
-    val allPlannerDays: List<ContentDayPlan> = repository.getAllPlannerDays()
+    private val _coverStudioState = MutableStateFlow(CoverStudioUiState())
+    val coverStudioState: StateFlow<CoverStudioUiState> = _coverStudioState.asStateFlow()
 
-    // Script Maker State
-    private val _scriptMakerState = MutableStateFlow(
-        ScriptMakerUiState(
-            templates = allTemplates,
-            selectedTemplate = allTemplates.firstOrNull()
-        )
-    )
-    val scriptMakerState: StateFlow<ScriptMakerUiState> = _scriptMakerState.asStateFlow()
+    private val _aiState = MutableStateFlow(AiAssistantUiState())
+    val aiState: StateFlow<AiAssistantUiState> = _aiState.asStateFlow()
 
-    // Calculator State
-    private val _calculatorState = MutableStateFlow(CalculatorUiState())
-    val calculatorState: StateFlow<CalculatorUiState> = _calculatorState.asStateFlow()
+    private val _scriptDraft = MutableStateFlow(ScriptDraftState())
+    val scriptDraft: StateFlow<ScriptDraftState> = _scriptDraft.asStateFlow()
 
-    // Rewarded Ad Simulation Dialog State
-    private val _rewardedAdForHook = MutableStateFlow<HookItem?>(null)
-    val rewardedAdForHook: StateFlow<HookItem?> = _rewardedAdForHook.asStateFlow()
+    private val _calculatorState = MutableStateFlow(EngagementCalculatorState())
+    val calculatorState: StateFlow<EngagementCalculatorState> = _calculatorState.asStateFlow()
+
+    private val _rewardedAdForHook = MutableStateFlow<ViralHook?>(null)
+    val rewardedAdForHook: StateFlow<ViralHook?> = _rewardedAdForHook.asStateFlow()
 
     private val _isAdWatching = MutableStateFlow(false)
     val isAdWatching: StateFlow<Boolean> = _isAdWatching.asStateFlow()
@@ -134,187 +170,199 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
     private val _adCountdown = MutableStateFlow(5)
     val adCountdown: StateFlow<Int> = _adCountdown.asStateFlow()
 
-    // Checkout Confirmation Dialog
-    data class CheckoutPlan(val title: String, val price: String, val days: Int)
-    private val _selectedCheckoutPlan = MutableStateFlow<CheckoutPlan?>(null)
-    val selectedCheckoutPlan: StateFlow<CheckoutPlan?> = _selectedCheckoutPlan.asStateFlow()
+    private val _selectedCheckoutPlan = MutableStateFlow<VipPlan?>(null)
+    val selectedCheckoutPlan: StateFlow<VipPlan?> = _selectedCheckoutPlan.asStateFlow()
 
     init {
-        // Initialize default script
-        allTemplates.firstOrNull()?.let { selectTemplate(it) }
-        calculateEngagement()
-    }
-
-    fun selectTab(tab: AppTab) {
-        _currentTab.value = tab
-    }
-
-    fun setCategory(category: HookCategory) {
-        _selectedCategory.value = category
-    }
-
-    fun setSearchQuery(query: String) {
-        _searchQuery.value = query
-    }
-
-    fun toggleFavoritesFilter() {
-        _showOnlyFavorites.value = !_showOnlyFavorites.value
-    }
-
-    fun toggleFavoriteHook(hookId: String) {
+        calculateEngagementRate()
         viewModelScope.launch {
-            repository.toggleFavorite(hookId, favoriteIds.value.toList())
-            val isFav = !favoriteIds.value.contains(hookId)
-            _toastMessage.emit(if (isFav) "به قلاب‌های ذخیره‌شده اضافه شد ★" else "از ذخیره‌شده‌ها حذف شد")
+            val settings = db.reelsDao().getSettingsDirect()
+            if (settings != null) {
+                _vipState.value = _vipState.value.copy(
+                    isVipActive = settings.isVipUser,
+                    unlockedHookIds = settings.unlockedHookIds.split(",").filter { it.isNotBlank() }.mapNotNull { it.toIntOrNull() }.toSet(),
+                    completedPlannerDays = settings.completedPlannerDays.split(",").filter { it.isNotBlank() }.mapNotNull { it.toIntOrNull() }.toSet()
+                )
+            }
         }
     }
 
-    fun isHookUnlocked(hook: HookItem): Boolean {
-        if (!hook.isVipOnly) return true
-        if (vipState.value.isVipActive) return true
-        val unlocked = vipState.value.temporaryUnlockedHooks.split(",")
-        return unlocked.contains(hook.id)
+    fun selectTab(tab: AppTab) { _currentTab.value = tab }
+    fun setCategory(category: HookCategory?) { _selectedCategory.value = category }
+    fun setSearchQuery(query: String) { _searchQuery.value = query }
+    fun toggleFavoritesFilter() { _showOnlyFavorites.value = !_showOnlyFavorites.value }
+
+    fun toggleFavoriteHook(hookId: Int) {
+        val current = _vipState.value.favoriteHookIds.toMutableSet()
+        if (current.contains(hookId)) current.remove(hookId) else current.add(hookId)
+        _vipState.value = _vipState.value.copy(favoriteHookIds = current)
     }
 
-    fun promptWatchRewardedAd(hook: HookItem) {
-        _rewardedAdForHook.value = hook
+    fun isHookUnlocked(hookId: Int): Boolean {
+        return _vipState.value.isVipActive || _vipState.value.unlockedHookIds.contains(hookId)
     }
 
-    fun dismissRewardedAdPrompt() {
-        _rewardedAdForHook.value = null
-        _isAdWatching.value = false
-    }
+    fun requestUnlockHook(hook: ViralHook) { _rewardedAdForHook.value = hook }
+    fun dismissRewardedAdPrompt() { _rewardedAdForHook.value = null; _isAdWatching.value = false }
 
     fun startWatchingRewardedAd() {
-        val hook = _rewardedAdForHook.value ?: return
-        _isAdWatching.value = true
-        _adCountdown.value = 5
-
         viewModelScope.launch {
-            for (i in 5 downTo 1) {
-                _adCountdown.value = i
-                delay(1000)
+            _isAdWatching.value = true
+            _adCountdown.value = 5
+            for (i in 5 downTo 1) { _adCountdown.value = i; delay(1000) }
+            
+            val hook = _rewardedAdForHook.value
+            if (hook != null) {
+                val newUnlocked = _vipState.value.unlockedHookIds + hook.id
+                _vipState.value = _vipState.value.copy(unlockedHookIds = newUnlocked)
+                persistUnlockedHook(hook.id)
+                _toastMessage.emit("قفل «${hook.title}» با موفقیت باز شد! 🎉")
             }
-            // Reward user
-            repository.unlockHookWithRewardedAd(hook.id, vipState.value)
-            _isAdWatching.value = false
-            _rewardedAdForHook.value = null
-            _toastMessage.emit("تبریک! قلاب وایرال برای شما باز شد 🎁")
+            dismissRewardedAdPrompt()
         }
     }
 
-    // Script Maker functions
-    fun selectTemplate(template: ScriptTemplate) {
-        _scriptMakerState.value = _scriptMakerState.value.copy(
-            selectedTemplate = template,
-            customTopic = template.placeholderTopic,
-            customBenefit = template.placeholderBenefit,
-            customObstacle = template.placeholderObstacle,
-            customCta = template.ctaTemplate
-        )
-        generateScript()
+    private fun persistUnlockedHook(hookId: Int) {
+        viewModelScope.launch {
+            val current = db.reelsDao().getSettingsDirect() ?: AppSettingsEntity()
+            val ids = current.unlockedHookIds.split(",").filter { it.isNotBlank() }.toMutableSet()
+            ids.add(hookId.toString())
+            db.reelsDao().saveSettings(current.copy(unlockedHookIds = ids.joinToString(",")))
+        }
     }
 
-    fun updateCustomFields(topic: String, benefit: String, obstacle: String, cta: String) {
-        _scriptMakerState.value = _scriptMakerState.value.copy(
-            customTopic = topic,
-            customBenefit = benefit,
-            customObstacle = obstacle,
-            customCta = cta
-        )
-        generateScript()
-    }
-
-    private fun generateScript() {
-        val state = _scriptMakerState.value
-        val template = state.selectedTemplate ?: return
-
-        val hook = template.hookTemplate
-            .replace("[محصول یا سرویس]", state.customTopic.ifBlank { "محصول شما" })
-            .replace("[مهارت اصلی]", state.customTopic.ifBlank { "مهارت جدید" })
-
-        val body = template.bodyTemplate
-            .replace("[علت تفاوت کیفیت یا تامین مستقیم]", state.customBenefit.ifBlank { "کیفیت بالا و حذف واسطه" })
-            .replace("[ویژگی کلیدی یا گارانتی محصول]", state.customBenefit.ifBlank { "ضمانت اختصاصی" })
-            .replace("[بزرگترین ضرر مشتری]", state.customObstacle.ifBlank { "هزینه اضافی و پشیمانی" })
-            .replace("[اشتباه رایج مثل هشتگ نامربوط یا شروع بدون قلاب]", state.customObstacle.ifBlank { "شروع بدون قلاب شوکه‌کننده" })
-            .replace("[نام ابزار ۱]", "CapCut / AutoCap")
-            .replace("[نام ابزار ۲]", "Adobe Podcast AI")
-            .replace("[نام ابزار ۳]", "Reels Studio")
-            .replace("[نتیجه ملموس]", state.customBenefit.ifBlank { "رشد ۳ برابری فروش و بازدید" })
-
-        val cta = state.customCta.ifBlank { template.ctaTemplate }
-
-        val full = "🎬 [قلاب ۳ ثانیه‌ای اول ویدیو]:\n$hook\n\n📌 [بدنه اصلی و ارائه ارزش]:\n$body\n\n🚀 [کال تو اکشن و دعوت به اقدام نهایی]:\n$cta"
-
-        _scriptMakerState.value = _scriptMakerState.value.copy(generatedScript = full)
+    fun updateScriptDraft(title: String? = null, hookText: String? = null, bodyText: String? = null, ctaText: String? = null, notes: String? = null) {
+        val old = _scriptDraft.value
+        _scriptDraft.value = old.copy(title = title ?: old.title, hookText = hookText ?: old.hookText, bodyText = bodyText ?: old.bodyText, ctaText = ctaText ?: old.ctaText, notes = notes ?: old.notes)
     }
 
     fun saveCurrentScript() {
         viewModelScope.launch {
-            val state = _scriptMakerState.value
-            val title = state.selectedTemplate?.title ?: "سناریوی ریلز"
-            repository.saveScript(title, state.generatedScript)
-            _toastMessage.emit("سناریو با موفقیت در بخش «سناریوهای من» ذخیره شد ✓")
+            val draft = _scriptDraft.value
+            if (draft.title.isBlank() && draft.hookText.isBlank()) {
+                _toastMessage.emit("لطفاً حداقل عنوان یا قلاب سناریو را وارد کنید")
+                return@launch
+            }
+            db.reelsDao().insertScript(SavedScriptEntity(id = draft.editingScriptId ?: 0, title = draft.title.ifBlank { "سناریوی بدون عنوان" }, hookText = draft.hookText, bodyText = draft.bodyText, ctaText = draft.ctaText, notes = draft.notes, durationSeconds = 30))
+            _toastMessage.emit("سناریو با موفقیت ذخیره شد ✅")
+            _scriptDraft.value = ScriptDraftState()
         }
     }
 
-    fun deleteSavedScript(id: Int) {
+    fun deleteSavedScript(script: SavedScriptEntity) {
         viewModelScope.launch {
-            repository.deleteSavedScript(id)
-            _toastMessage.emit("سناریو حذف شد")
+            db.reelsDao().deleteScript(script)
+            _toastMessage.emit("سناریو حذف شد 🗑️")
         }
     }
 
-    // Planner functions
     fun togglePlannerDay(dayNumber: Int) {
+        val days = _vipState.value.completedPlannerDays.toMutableSet()
+        if (days.contains(dayNumber)) days.remove(dayNumber) else days.add(dayNumber)
+        _vipState.value = _vipState.value.copy(completedPlannerDays = days)
         viewModelScope.launch {
-            val current = plannerProgress.value[dayNumber] ?: false
-            repository.togglePlannerDay(dayNumber, current)
-            _toastMessage.emit(if (!current) "روز $dayNumber با موفقیت تکمیل شد! آفرین 🎉" else "وضعیت روز $dayNumber ریست شد")
+            val current = db.reelsDao().getSettingsDirect() ?: AppSettingsEntity()
+            db.reelsDao().saveSettings(current.copy(completedPlannerDays = days.joinToString(",")))
         }
     }
 
-    // Calculator functions
-    fun updateCalculatorFields(followers: String, likes: String, comments: String, saves: String, shares: String) {
-        _calculatorState.value = _calculatorState.value.copy(
-            followers = followers.filter { it.isDigit() },
-            likes = likes.filter { it.isDigit() },
-            comments = comments.filter { it.isDigit() },
-            saves = saves.filter { it.isDigit() },
-            shares = shares.filter { it.isDigit() }
-        )
-        calculateEngagement()
+    fun updateCalculatorFields(followers: String? = null, likes: String? = null, comments: String? = null, shares: String? = null, saves: String? = null) {
+        val old = _calculatorState.value
+        _calculatorState.value = old.copy(followers = followers ?: old.followers, likes = likes ?: old.likes, comments = comments ?: old.comments, shares = shares ?: old.shares, saves = saves ?: old.saves)
+        calculateEngagementRate()
     }
 
-    fun calculateEngagement() {
-        val s = _calculatorState.value
-        val followers = s.followers.toLongOrNull() ?: 0L
-        val likes = s.likes.toLongOrNull() ?: 0L
-        val comments = s.comments.toLongOrNull() ?: 0L
-        val saves = s.saves.toLongOrNull() ?: 0L
-        val shares = s.shares.toLongOrNull() ?: 0L
-
-        val result = repository.calculateEngagement(followers, likes, comments, saves, shares)
-        _calculatorState.value = _calculatorState.value.copy(result = result)
+    private fun calculateEngagementRate() {
+        val state = _calculatorState.value
+        val followers = state.followers.toDoubleOrNull() ?: 1.0
+        if (followers <= 0) return
+        val interactions = (state.likes.toDoubleOrNull() ?: 0.0) + (state.comments.toDoubleOrNull() ?: 0.0) * 2.0 + (state.shares.toDoubleOrNull() ?: 0.0) * 3.5 + (state.saves.toDoubleOrNull() ?: 0.0) * 3.0
+        val rate = kotlin.math.round(((interactions / followers) * 100.0) * 100) / 100.0
+        val result = when {
+            rate >= 8.0 -> "فوق‌العاده وایرال 🔥" to "تعامل پیج شما در سطح بسیار بالایی قرار دارد."
+            rate >= 4.5 -> "بسیار عالی 🚀" to "نرخ تعامل شما بسیار خوب است."
+            rate >= 2.5 -> "متوسط رو به رشد 📈" to "وضعیت خوب است اما جای بهبود وجود دارد."
+            else -> "نیازمند بهینه‌سازی ⚠️" to "روی قلاب، ارزش محتوا و تعامل بیشتر کار کنید."
+        }
+        _calculatorState.value = state.copy(calculatedRate = rate, engagementGrade = result.first, recommendation = result.second)
     }
 
-    // VIP Store & Checkout
+    fun setThumbnailRatio(ratio: String) { _thumbnailStudioState.value = _thumbnailStudioState.value.copy(currentRatio = ratio) }
+    fun selectThumbnailTemplate(template: ThumbnailTemplate) { _thumbnailStudioState.value = _thumbnailStudioState.value.copy(selectedTemplateId = template.id, primaryTitle = template.defaultTitle, subtitle = template.defaultSubtitle, badgeText = template.defaultBadge) }
+    fun updateThumbnailText(primaryTitle: String? = null, subtitle: String? = null, badgeText: String? = null) {
+        val old = _thumbnailStudioState.value
+        _thumbnailStudioState.value = old.copy(primaryTitle = primaryTitle ?: old.primaryTitle, subtitle = subtitle ?: old.subtitle, badgeText = badgeText ?: old.badgeText)
+    }
+    fun toggleThumbnailBadge(show: Boolean) { _thumbnailStudioState.value = _thumbnailStudioState.value.copy(showBadge = show) }
+    fun setThumbnailBadgePosition(position: String) { _thumbnailStudioState.value = _thumbnailStudioState.value.copy(badgePosition = position) }
+    fun setThumbnailGradient(index: Int) { _thumbnailStudioState.value = _thumbnailStudioState.value.copy(selectedGradientIndex = index) }
+
+    fun selectCoverCategory(category: CoverCategory) { _coverStudioState.value = _coverStudioState.value.copy(selectedCategory = category) }
+    fun selectCoverTemplate(template: CoverTemplate) { _coverStudioState.value = _coverStudioState.value.copy(selectedTemplateId = template.id, headlineText = template.defaultMainHeadline, subHeadlineText = template.defaultSubHeadline, badgeText = template.badgeText, selectedAccentColor = template.accentColorHex, selectedTextColor = template.textColorHex) }
+    fun updateCoverTexts(headline: String, subHeadline: String, badge: String) { _coverStudioState.value = _coverStudioState.value.copy(headlineText = headline, subHeadlineText = subHeadline, badgeText = badge) }
+    fun toggleShortsBadge(enabled: Boolean) { _coverStudioState.value = _coverStudioState.value.copy(isYoutubeShortsBadge = enabled) }
+    fun setCoverCustomImage(uri: String?) { _coverStudioState.value = _coverStudioState.value.copy(customImageUri = uri) }
+    fun setCoverColors(accentColor: Long, textColor: Long) { _coverStudioState.value = _coverStudioState.value.copy(selectedAccentColor = accentColor, selectedTextColor = textColor) }
+
+    fun setAiSubTab(tab: Int) { _aiState.value = _aiState.value.copy(activeSubTab = tab) }
+    fun updateChatInput(text: String) { _aiState.value = _aiState.value.copy(chatInput = text) }
+    fun sendChatMessage(promptText: String = "") {
+        val message = promptText.ifBlank { _aiState.value.chatInput }.trim()
+        if (message.isBlank() || _aiState.value.isChatTyping) return
+        _aiState.value = _aiState.value.copy(chatMessages = _aiState.value.chatMessages + ChatMessage(text = message, isUser = true), chatInput = "", isChatTyping = true, errorMessage = null)
+        viewModelScope.launch {
+            delay(500)
+            _aiState.value = _aiState.value.copy(
+                chatMessages = _aiState.value.chatMessages + ChatMessage(text = "پاسخ هوشمند به: $message (این یک پاسخ آزمایشی است)", isUser = false),
+                isChatTyping = false
+            )
+        }
+    }
+    fun clearChatHistory() { _aiState.value = _aiState.value.copy(chatMessages = emptyList()) }
+
+    fun setAiMode(mode: String) { _aiState.value = _aiState.value.copy(selectedMode = mode) }
+    fun updateAiInputs(topic: String, audience: String, tone: String) { _aiState.value = _aiState.value.copy(topicInput = topic, targetAudience = audience, tone = tone) }
+    fun generateAiContent() {
+        val state = _aiState.value
+        if (state.topicInput.isBlank()) { viewModelScope.launch { _toastMessage.emit("لطفاً ابتدا موضوع ریلز را وارد کنید") }; return }
+        _aiState.value = state.copy(isGenerating = true, errorMessage = null)
+        viewModelScope.launch {
+            delay(1000)
+            _aiState.value = _aiState.value.copy(
+                isGenerating = false,
+                aiResult = "محتوای تولید شده برای: ${state.topicInput}\nلحن: ${state.tone}\n(این یک پاسخ آزمایشی است)"
+            )
+        }
+    }
+
+    fun toggleDarkMode(enabled: Boolean) {
+        viewModelScope.launch {
+            val current = db.reelsDao().getSettingsDirect() ?: AppSettingsEntity()
+            db.reelsDao().saveSettings(current.copy(isDarkMode = enabled))
+        }
+    }
+
+    fun setFontScale(scale: Float) {
+        viewModelScope.launch {
+            val current = db.reelsDao().getSettingsDirect() ?: AppSettingsEntity()
+            db.reelsDao().saveSettings(current.copy(fontScale = scale))
+        }
+    }
+
     fun openCheckout(title: String, price: String, days: Int) {
-        _selectedCheckoutPlan.value = CheckoutPlan(title, price, days)
+        _selectedCheckoutPlan.value = VipPlan(title = title, price = price, durationDays = days)
     }
 
-    fun dismissCheckout() {
-        _selectedCheckoutPlan.value = null
-    }
+    fun dismissCheckout() { _selectedCheckoutPlan.value = null }
 
     fun confirmPurchase() {
         val plan = _selectedCheckoutPlan.value ?: return
         viewModelScope.launch {
-            repository.activateVip(plan.title, plan.days)
-            _selectedCheckoutPlan.value = null
-            _toastMessage.emit("اشتراک ${plan.title} با موفقیت فعال شد! به خانواده VIP خوش آمدید 👑")
+            _vipState.value = _vipState.value.copy(isVipActive = true, planName = plan.title, expirationDateString = "${plan.durationDays} روز")
+            val current = db.reelsDao().getSettingsDirect() ?: AppSettingsEntity()
+            db.reelsDao().saveSettings(current.copy(isVipUser = true))
+            _toastMessage.emit("اشتراک ${plan.title} فعال شد! به خانواده VIP خوش آمدید 👑")
+            dismissCheckout()
         }
     }
 }
-Copied!
