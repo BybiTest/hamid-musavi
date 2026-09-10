@@ -9,11 +9,14 @@ import com.example.data.local.AppSettingsEntity
 import com.example.data.local.SavedScriptEntity
 import com.example.data.model.AppTab
 import com.example.data.model.ContentPlanDay
+import com.example.data.model.CoverCategory
+import com.example.data.model.CoverTemplate
 import com.example.data.model.HookCategory
 import com.example.data.model.ThumbnailTemplate
 import com.example.data.model.VipPlan
 import com.example.data.model.ViralHook
 import com.example.data.remote.GeminiApiService
+import com.example.data.local.PreloadedContent
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,14 +25,18 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 data class VipUiState(
     val isVipActive: Boolean = false,
     val unlockedHookIds: Set<Int> = emptySet(),
     val favoriteHookIds: Set<Int> = emptySet(),
-    val completedPlannerDays: Set<Int> = emptySet()
+    val completedPlannerDays: Set<Int> = emptySet(),
+    val planName: String = "رایگان",
+    val expirationDateString: String = "نامحدود"
 )
 
 data class ScriptDraftState(
@@ -38,7 +45,7 @@ data class ScriptDraftState(
     val bodyText: String = "",
     val ctaText: String = "",
     val notes: String = "",
-    val editingScriptId: Long? = null
+    val editingScriptId: Int? = null
 )
 
 data class EngagementCalculatorState(
@@ -64,8 +71,21 @@ data class ThumbnailStudioUiState(
     val isAiGeneratingTitle: Boolean = false
 )
 
+data class CoverStudioUiState(
+    val selectedTemplateId: String = "",
+    val selectedCategory: CoverCategory = CoverCategory.ALL,
+    val headlineText: String = "ترفند مخفی ریلز!",
+    val subHeadlineText: String = "چطور در ۳ روز به اکسپلور برسی؟",
+    val badgeText: String = "شوکه‌کننده 🔥",
+    val isYoutubeShortsBadge: Boolean = false,
+    val customImageUri: String? = null,
+    val selectedAccentColor: Long = 0xFFFF3D00,
+    val selectedTextColor: Long = 0xFFFFFFFF,
+    val isAiGeneratingTitle: Boolean = false
+)
+
 data class ChatMessage(
-    val id: String = java.util.UUID.randomUUID().toString(),
+    val id: String = UUID.randomUUID().toString(),
     val text: String,
     val isUser: Boolean,
     val timestamp: Long = System.currentTimeMillis()
@@ -94,9 +114,7 @@ data class AiAssistantUiState(
 class ReelsViewModel(application: Application) : AndroidViewModel(application) {
 
     private val db = AppDatabase.getInstance(application)
-    private val hooksDao = db.viralHookDao()
-    private val scriptDao = db.scriptDao()
-    private val settingsDao = db.settingsDao()
+    private val dao = db.reelsDao()
 
     // ---------------------------------------------------------
     // Navigation
@@ -104,6 +122,23 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _currentTab = MutableStateFlow(AppTab.HOOKS)
     val currentTab: StateFlow<AppTab> = _currentTab.asStateFlow()
+
+    fun selectTab(tab: AppTab) {
+        _currentTab.value = tab
+    }
+
+    // ---------------------------------------------------------
+    // Settings
+    // ---------------------------------------------------------
+
+    val appSettings: StateFlow<AppSettingsEntity> =
+        dao.getAppSettings()
+            .map { it ?: AppSettingsEntity() }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = AppSettingsEntity()
+            )
 
     // ---------------------------------------------------------
     // VIP
@@ -113,85 +148,135 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
     val vipState: StateFlow<VipUiState> = _vipState.asStateFlow()
 
     // ---------------------------------------------------------
-    // App Settings
+    // Planner compatibility
     // ---------------------------------------------------------
 
-    val appSettings: StateFlow<AppSettingsEntity> = settingsDao.getSettings()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = AppSettingsEntity()
-        )
+    val plannerProgress: StateFlow<Map<Int, Boolean>> =
+        vipState
+            .map { state ->
+                (1..30).associateWith {
+                    it in state.completedPlannerDays
+                }
+            }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = (1..30).associateWith { false }
+            )
 
     // ---------------------------------------------------------
     // Saved Scripts
     // ---------------------------------------------------------
 
-    val savedScripts: StateFlow<List<SavedScriptEntity>> = scriptDao.getAllScripts()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
+    val savedScripts: StateFlow<List<SavedScriptEntity>> =
+        dao.getAllScripts()
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptyList()
+            )
 
     // ---------------------------------------------------------
     // Script Draft
     // ---------------------------------------------------------
 
     private val _scriptDraft = MutableStateFlow(ScriptDraftState())
-    val scriptDraft: StateFlow<ScriptDraftState> = _scriptDraft.asStateFlow()
+    val scriptDraft: StateFlow<ScriptDraftState> =
+        _scriptDraft.asStateFlow()
 
     // ---------------------------------------------------------
     // Calculator
     // ---------------------------------------------------------
 
-    private val _calculatorState = MutableStateFlow(EngagementCalculatorState())
+    private val _calculatorState =
+        MutableStateFlow(EngagementCalculatorState())
+
     val calculatorState: StateFlow<EngagementCalculatorState> =
         _calculatorState.asStateFlow()
 
     // ---------------------------------------------------------
-    // Thumbnail Studio
+    // Thumbnail Studio - old API
     // ---------------------------------------------------------
 
-    private val _thumbnailStudioState = MutableStateFlow(ThumbnailStudioUiState())
+    private val _thumbnailStudioState =
+        MutableStateFlow(ThumbnailStudioUiState())
+
     val thumbnailStudioState: StateFlow<ThumbnailStudioUiState> =
         _thumbnailStudioState.asStateFlow()
+
+    // ---------------------------------------------------------
+    // Cover Studio - current API
+    // ---------------------------------------------------------
+
+    private val defaultCoverTemplates: List<CoverTemplate> =
+        PreloadedContent.coverTemplates
+
+    private val _coverStudioState =
+        MutableStateFlow(
+            CoverStudioUiState(
+                selectedTemplateId =
+                    defaultCoverTemplates.firstOrNull()?.id ?: ""
+            )
+        )
+
+    val coverStudioState: StateFlow<CoverStudioUiState> =
+        _coverStudioState.asStateFlow()
+
+    fun getAllCoverTemplates(): List<CoverTemplate> {
+        return defaultCoverTemplates
+    }
 
     // ---------------------------------------------------------
     // AI Assistant
     // ---------------------------------------------------------
 
-    private val _aiState = MutableStateFlow(AiAssistantUiState())
-    val aiState: StateFlow<AiAssistantUiState> = _aiState.asStateFlow()
+    private val _aiState =
+        MutableStateFlow(AiAssistantUiState())
+
+    val aiState: StateFlow<AiAssistantUiState> =
+        _aiState.asStateFlow()
 
     // ---------------------------------------------------------
-    // Hooks Filters
+    // Hooks
     // ---------------------------------------------------------
 
     private val _searchQuery = MutableStateFlow("")
-    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+    val searchQuery: StateFlow<String> =
+        _searchQuery.asStateFlow()
 
-    private val _selectedCategory = MutableStateFlow<HookCategory?>(null)
+    private val _selectedCategory =
+        MutableStateFlow<HookCategory?>(null)
+
     val selectedCategory: StateFlow<HookCategory?> =
         _selectedCategory.asStateFlow()
 
-    private val _showOnlyFavorites = MutableStateFlow(false)
+    private val _showOnlyFavorites =
+        MutableStateFlow(false)
+
     val showOnlyFavorites: StateFlow<Boolean> =
         _showOnlyFavorites.asStateFlow()
 
+    val allHooks = PreloadedContent.hooks
+
     // ---------------------------------------------------------
-    // Ads
+    // Ads / Rewarded Hooks
     // ---------------------------------------------------------
 
-    private val _rewardedAdForHook = MutableStateFlow<ViralHook?>(null)
+    private val _rewardedAdForHook =
+        MutableStateFlow<ViralHook?>(null)
+
     val rewardedAdForHook: StateFlow<ViralHook?> =
         _rewardedAdForHook.asStateFlow()
 
-    private val _isAdWatching = MutableStateFlow(false)
+    private val _isAdWatching =
+        MutableStateFlow(false)
+
     val isAdWatching: StateFlow<Boolean> =
         _isAdWatching.asStateFlow()
 
-    private val _adCountdown = MutableStateFlow(5)
+    private val _adCountdown =
+        MutableStateFlow(5)
+
     val adCountdown: StateFlow<Int> =
         _adCountdown.asStateFlow()
 
@@ -199,7 +284,9 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
     // VIP Checkout
     // ---------------------------------------------------------
 
-    private val _selectedCheckoutPlan = MutableStateFlow<VipPlan?>(null)
+    private val _selectedCheckoutPlan =
+        MutableStateFlow<VipPlan?>(null)
+
     val selectedCheckoutPlan: StateFlow<VipPlan?> =
         _selectedCheckoutPlan.asStateFlow()
 
@@ -207,7 +294,9 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
     // Toast
     // ---------------------------------------------------------
 
-    private val _toastMessage = MutableSharedFlow<String>()
+    private val _toastMessage =
+        MutableSharedFlow<String>()
+
     val toastMessage: SharedFlow<String> =
         _toastMessage.asSharedFlow()
 
@@ -219,37 +308,33 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
         calculateEngagementRate()
 
         viewModelScope.launch {
-            val settings = settingsDao.getSettingsDirect()
+            val settings =
+                dao.getSettingsDirect()
 
             if (settings != null) {
 
-                val unlockedIds = settings.unlockedHookIds
-                    .split(",")
-                    .filter { it.isNotBlank() }
-                    .mapNotNull { it.toIntOrNull() }
-                    .toSet()
+                val unlockedIds =
+                    settings.unlockedHookIds
+                        .split(",")
+                        .filter { it.isNotBlank() }
+                        .mapNotNull { it.toIntOrNull() }
+                        .toSet()
 
-                val completedDays = settings.completedPlannerDays
-                    .split(",")
-                    .filter { it.isNotBlank() }
-                    .mapNotNull { it.toIntOrNull() }
-                    .toSet()
+                val completedDays =
+                    settings.completedPlannerDays
+                        .split(",")
+                        .filter { it.isNotBlank() }
+                        .mapNotNull { it.toIntOrNull() }
+                        .toSet()
 
-                _vipState.value = _vipState.value.copy(
-                    isVipActive = settings.isVipUser,
-                    unlockedHookIds = unlockedIds,
-                    completedPlannerDays = completedDays
-                )
+                _vipState.value =
+                    _vipState.value.copy(
+                        isVipActive = settings.isVipUser,
+                        unlockedHookIds = unlockedIds,
+                        completedPlannerDays = completedDays
+                    )
             }
         }
-    }
-
-    // =========================================================
-    // Navigation
-    // =========================================================
-
-    fun selectTab(tab: AppTab) {
-        _currentTab.value = tab
     }
 
     // =========================================================
@@ -264,45 +349,51 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
         _selectedCategory.value = category
     }
 
+    fun setCategory(category: HookCategory?) {
+        selectCategory(category)
+    }
+
     fun toggleFavoritesFilter() {
-        _showOnlyFavorites.value = !_showOnlyFavorites.value
+        _showOnlyFavorites.value =
+            !_showOnlyFavorites.value
     }
 
     fun toggleFavoriteHook(hookId: Int) {
 
-        val currentFavs =
+        val current =
             _vipState.value.favoriteHookIds.toMutableSet()
 
-        if (currentFavs.contains(hookId)) {
-            currentFavs.remove(hookId)
+        if (current.contains(hookId)) {
+            current.remove(hookId)
         } else {
-            currentFavs.add(hookId)
+            current.add(hookId)
         }
 
         _vipState.value =
             _vipState.value.copy(
-                favoriteHookIds = currentFavs
+                favoriteHookIds = current
             )
     }
 
-    // =========================================================
-    // Rewarded Ads
-    // =========================================================
+    fun isHookUnlocked(hook: ViralHook): Boolean {
+        return _vipState.value.isVipActive ||
+                _vipState.value.unlockedHookIds.contains(hook.id)
+    }
 
     fun requestUnlockHook(hook: ViralHook) {
 
-        if (
-            _vipState.value.isVipActive ||
-            _vipState.value.unlockedHookIds.contains(hook.id)
-        ) {
+        if (isHookUnlocked(hook)) {
             return
         }
 
         _rewardedAdForHook.value = hook
     }
 
-    fun dismissRewardedAdPrompt() {
+    fun promptWatchRewardedAd(hook: ViralHook) {
+        requestUnlockHook(hook)
+    }
 
+    fun dismissRewardedAdPrompt() {
         _rewardedAdForHook.value = null
         _isAdWatching.value = false
         _adCountdown.value = 5
@@ -320,7 +411,8 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
                 _adCountdown.value -= 1
             }
 
-            val hook = _rewardedAdForHook.value
+            val hook =
+                _rewardedAdForHook.value
 
             if (hook != null) {
 
@@ -347,23 +439,24 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
 
-            val currentSettings =
-                settingsDao.getSettingsDirect()
+            val current =
+                dao.getSettingsDirect()
                     ?: AppSettingsEntity()
 
-            val set = currentSettings.unlockedHookIds
-                .split(",")
-                .filter { it.isNotBlank() }
-                .toMutableSet()
+            val ids =
+                current.unlockedHookIds
+                    .split(",")
+                    .filter { it.isNotBlank() }
+                    .toMutableSet()
 
-            set.add(hookId.toString())
+            ids.add(hookId.toString())
 
-            val updated =
-                currentSettings.copy(
-                    unlockedHookIds = set.joinToString(",")
+            dao.saveSettings(
+                current.copy(
+                    unlockedHookIds =
+                        ids.joinToString(",")
                 )
-
-            settingsDao.saveSettings(updated)
+            )
         }
     }
 
@@ -375,6 +468,20 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
         _selectedCheckoutPlan.value = plan
     }
 
+    fun openCheckout(
+        planName: String,
+        price: String,
+        durationDays: Int
+    ) {
+        openVipCheckout(
+            VipPlan(
+                title = planName,
+                price = price,
+                durationDays = durationDays
+            )
+        )
+    }
+
     fun dismissCheckout() {
         _selectedCheckoutPlan.value = null
     }
@@ -383,65 +490,69 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
 
-            _selectedCheckoutPlan.value?.let { plan ->
+            val plan =
+                _selectedCheckoutPlan.value
+                    ?: return@launch
 
-                _vipState.value =
-                    _vipState.value.copy(
-                        isVipActive = true
-                    )
-
-                val current =
-                    settingsDao.getSettingsDirect()
-                        ?: AppSettingsEntity()
-
-                settingsDao.saveSettings(
-                    current.copy(
-                        isVipUser = true
-                    )
+            _vipState.value =
+                _vipState.value.copy(
+                    isVipActive = true,
+                    planName = plan.title,
+                    expirationDateString =
+                        "${plan.durationDays} روز"
                 )
 
-                _toastMessage.emit(
-                    "تبریک! اشتراک ${plan.title} با موفقیت فعال شد 💎"
+            val current =
+                dao.getSettingsDirect()
+                    ?: AppSettingsEntity()
+
+            dao.saveSettings(
+                current.copy(
+                    isVipUser = true
                 )
-            }
+            )
+
+            _toastMessage.emit(
+                "اشتراک ${plan.title} فعال شد 💎"
+            )
 
             dismissCheckout()
         }
     }
 
     // =========================================================
-    // Content Planner
+    // Planner
     // =========================================================
 
     fun toggleDayCompleted(dayNumber: Int) {
 
-        val currentDays =
-            _vipState.value.completedPlannerDays.toMutableSet()
+        val days =
+            _vipState.value.completedPlannerDays
+                .toMutableSet()
 
-        if (currentDays.contains(dayNumber)) {
-            currentDays.remove(dayNumber)
+        if (days.contains(dayNumber)) {
+            days.remove(dayNumber)
         } else {
-            currentDays.add(dayNumber)
+            days.add(dayNumber)
         }
 
         _vipState.value =
             _vipState.value.copy(
-                completedPlannerDays = currentDays
+                completedPlannerDays = days
             )
 
         viewModelScope.launch {
 
-            val currentSettings =
-                settingsDao.getSettingsDirect()
+            val current =
+                dao.getSettingsDirect()
                     ?: AppSettingsEntity()
 
-            val updated =
-                currentSettings.copy(
+            dao.saveSettings(
+                current.copy(
                     completedPlannerDays =
-                        currentDays.joinToString(",")
+                        days.joinToString(",")
                 )
-
-            settingsDao.saveSettings(updated)
+            )
         }
     }
 
@@ -457,17 +568,22 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
         notes: String? = null
     ) {
 
+        val old =
+            _scriptDraft.value
+
         _scriptDraft.value =
-            _scriptDraft.value.copy(
-                title = title ?: _scriptDraft.value.title,
-                hookText = hookText ?: _scriptDraft.value.hookText,
-                bodyText = bodyText ?: _scriptDraft.value.bodyText,
-                ctaText = ctaText ?: _scriptDraft.value.ctaText,
-                notes = notes ?: _scriptDraft.value.notes
+            old.copy(
+                title = title ?: old.title,
+                hookText = hookText ?: old.hookText,
+                bodyText = bodyText ?: old.bodyText,
+                ctaText = ctaText ?: old.ctaText,
+                notes = notes ?: old.notes
             )
     }
 
-    fun loadScriptIntoEditor(script: SavedScriptEntity) {
+    fun loadScriptIntoEditor(
+        script: SavedScriptEntity
+    ) {
 
         _scriptDraft.value =
             ScriptDraftState(
@@ -482,29 +598,30 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
         _currentTab.value = AppTab.SCRIPTS
     }
 
-    fun applyHookToScript(hook: ViralHook) {
+    fun applyHookToScript(
+        hook: ViralHook
+    ) {
+
+        val old =
+            _scriptDraft.value
 
         _scriptDraft.value =
-            _scriptDraft.value.copy(
+            old.copy(
                 title =
-                    if (_scriptDraft.value.title.isBlank()) {
+                    if (old.title.isBlank()) {
                         "سناریوی ریلز: ${hook.title}"
                     } else {
-                        _scriptDraft.value.title
+                        old.title
                     },
                 hookText = hook.template
             )
 
         _currentTab.value = AppTab.SCRIPTS
-
-        viewModelScope.launch {
-            _toastMessage.emit(
-                "قلاب وارد سناریوساز شد ✍️"
-            )
-        }
     }
 
-    fun applyPlannerDayToScript(planDay: ContentPlanDay) {
+    fun applyPlannerDayToScript(
+        planDay: ContentPlanDay
+    ) {
 
         _scriptDraft.value =
             _scriptDraft.value.copy(
@@ -513,17 +630,11 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
                 hookText = planDay.suggestedHook,
                 bodyText =
                     "نوع ویدیو: ${planDay.contentType}\n" +
-                    "سناریو پیشنهادی: ${planDay.description}",
+                            "سناریو پیشنهادی: ${planDay.description}",
                 ctaText = planDay.callToAction
             )
 
         _currentTab.value = AppTab.SCRIPTS
-
-        viewModelScope.launch {
-            _toastMessage.emit(
-                "ایده روز ${planDay.dayNumber} وارد سناریوساز شد ✍️"
-            )
-        }
     }
 
     fun resetScriptDraft() {
@@ -532,25 +643,24 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
 
     fun saveCurrentScript() {
 
-        val draft = _scriptDraft.value
+        val draft =
+            _scriptDraft.value
 
         if (
             draft.title.isBlank() &&
             draft.hookText.isBlank()
         ) {
-
             viewModelScope.launch {
                 _toastMessage.emit(
                     "لطفاً حداقل عنوان یا قلاب سناریو را وارد کنید"
                 )
             }
-
             return
         }
 
         viewModelScope.launch {
 
-            val entity =
+            dao.insertScript(
                 SavedScriptEntity(
                     id = draft.editingScriptId ?: 0,
                     title =
@@ -563,8 +673,7 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
                     notes = draft.notes,
                     durationSeconds = 30
                 )
-
-            scriptDao.insertScript(entity)
+            )
 
             _toastMessage.emit(
                 "سناریو با موفقیت ذخیره شد ✅"
@@ -574,11 +683,12 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun deleteScript(script: SavedScriptEntity) {
+    fun deleteScript(
+        script: SavedScriptEntity
+    ) {
 
         viewModelScope.launch {
-
-            scriptDao.deleteScript(script)
+            dao.deleteScript(script)
 
             _toastMessage.emit(
                 "سناریو حذف شد 🗑️"
@@ -587,7 +697,7 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // =========================================================
-    // Engagement Calculator
+    // Calculator
     // =========================================================
 
     fun updateCalculatorField(
@@ -598,18 +708,21 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
         saves: String? = null
     ) {
 
+        val old =
+            _calculatorState.value
+
         _calculatorState.value =
-            _calculatorState.value.copy(
+            old.copy(
                 followers =
-                    followers ?: _calculatorState.value.followers,
+                    followers ?: old.followers,
                 likes =
-                    likes ?: _calculatorState.value.likes,
+                    likes ?: old.likes,
                 comments =
-                    comments ?: _calculatorState.value.comments,
+                    comments ?: old.comments,
                 shares =
-                    shares ?: _calculatorState.value.shares,
+                    shares ?: old.shares,
                 saves =
-                    saves ?: _calculatorState.value.saves
+                    saves ?: old.saves
             )
 
         calculateEngagementRate()
@@ -617,82 +730,78 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun calculateEngagementRate() {
 
-        val f =
-            _calculatorState.value.followers.toDoubleOrNull()
+        val state =
+            _calculatorState.value
+
+        val followers =
+            state.followers.toDoubleOrNull()
                 ?: 1.0
 
-        val l =
-            _calculatorState.value.likes.toDoubleOrNull()
+        if (followers <= 0) {
+            return
+        }
+
+        val likes =
+            state.likes.toDoubleOrNull()
                 ?: 0.0
 
-        val c =
-            _calculatorState.value.comments.toDoubleOrNull()
+        val comments =
+            state.comments.toDoubleOrNull()
                 ?: 0.0
 
-        val sh =
-            _calculatorState.value.shares.toDoubleOrNull()
+        val shares =
+            state.shares.toDoubleOrNull()
                 ?: 0.0
 
-        val sa =
-            _calculatorState.value.saves.toDoubleOrNull()
+        val saves =
+            state.saves.toDoubleOrNull()
                 ?: 0.0
 
-        if (f <= 0.0) return
-
-        val totalInteractions =
-            l +
-                    (c * 2.0) +
-                    (sh * 3.5) +
-                    (sa * 3.0)
-
-        val rawRate =
-            (totalInteractions / f) * 100.0
+        val interactions =
+            likes +
+                    comments * 2.0 +
+                    shares * 3.5 +
+                    saves * 3.0
 
         val rate =
-            kotlin.math.round(rawRate * 100) / 100.0
+            kotlin.math.round(
+                ((interactions / followers) * 100.0) * 100
+            ) / 100.0
 
-        val (grade, rec) =
+        val result =
             when {
-
                 rate >= 8.0 ->
-                    Pair(
-                        "فوق‌العاده وایرال 🔥",
-                        "تعامل پیج شما در سطح بسیار بالایی قرار دارد."
-                    )
+                    "فوق‌العاده وایرال 🔥" to
+                            "تعامل پیج شما در سطح بسیار بالایی قرار دارد."
 
                 rate >= 4.5 ->
-                    Pair(
-                        "بسیار عالی 🚀",
-                        "نرخ تعامل شما بسیار خوب است. روی محتوای ذخیره‌محور تمرکز کنید."
-                    )
+                    "بسیار عالی 🚀" to
+                            "نرخ تعامل شما بسیار خوب است."
 
                 rate >= 2.5 ->
-                    Pair(
-                        "متوسط رو به رشد 📈",
-                        "پیج شما وضعیت خوبی دارد اما می‌توان نرخ تعامل را بهتر کرد."
-                    )
+                    "متوسط رو به رشد 📈" to
+                            "وضعیت خوب است اما جای بهبود وجود دارد."
 
                 else ->
-                    Pair(
-                        "نیازمند بهینه‌سازی ⚠️",
-                        "پیشنهاد می‌شود روی قلاب، ارزش محتوا و دعوت به تعامل بیشتر کار کنید."
-                    )
+                    "نیازمند بهینه‌سازی ⚠️" to
+                            "روی قلاب، ارزش محتوا و تعامل بیشتر کار کنید."
             }
 
         _calculatorState.value =
-            _calculatorState.value.copy(
+            state.copy(
                 calculatedRate = rate,
-                engagementGrade = grade,
-                recommendation = rec
+                engagementGrade = result.first,
+                recommendation = result.second
             )
     }
 
     // =========================================================
-    // Thumbnail Studio
+    // Old Thumbnail Studio API
     // =========================================================
 
-    fun setThumbnailRatio(ratio: String) {
-
+    fun setThumbnailRatio(
+        ratio: String
+    ) {
         _thumbnailStudioState.value =
             _thumbnailStudioState.value.copy(
                 currentRatio = ratio
@@ -702,7 +811,6 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
     fun selectThumbnailTemplate(
         template: ThumbnailTemplate
     ) {
-
         _thumbnailStudioState.value =
             _thumbnailStudioState.value.copy(
                 selectedTemplateId = template.id,
@@ -718,38 +826,41 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
         badgeText: String? = null
     ) {
 
+        val old =
+            _thumbnailStudioState.value
+
         _thumbnailStudioState.value =
-            _thumbnailStudioState.value.copy(
+            old.copy(
                 primaryTitle =
-                    primaryTitle
-                        ?: _thumbnailStudioState.value.primaryTitle,
+                    primaryTitle ?: old.primaryTitle,
                 subtitle =
-                    subtitle
-                        ?: _thumbnailStudioState.value.subtitle,
+                    subtitle ?: old.subtitle,
                 badgeText =
-                    badgeText
-                        ?: _thumbnailStudioState.value.badgeText
+                    badgeText ?: old.badgeText
             )
     }
 
-    fun toggleThumbnailBadge(show: Boolean) {
-
+    fun toggleThumbnailBadge(
+        show: Boolean
+    ) {
         _thumbnailStudioState.value =
             _thumbnailStudioState.value.copy(
                 showBadge = show
             )
     }
 
-    fun setThumbnailBadgePosition(position: String) {
-
+    fun setThumbnailBadgePosition(
+        position: String
+    ) {
         _thumbnailStudioState.value =
             _thumbnailStudioState.value.copy(
                 badgePosition = position
             )
     }
 
-    fun setThumbnailGradient(index: Int) {
-
+    fun setThumbnailGradient(
+        index: Int
+    ) {
         _thumbnailStudioState.value =
             _thumbnailStudioState.value.copy(
                 selectedGradientIndex = index
@@ -757,11 +868,155 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // =========================================================
-    // AI Assistant - Chat
+    // Cover Studio API
+    // =========================================================
+
+    fun selectCoverCategory(
+        category: CoverCategory
+    ) {
+        _coverStudioState.value =
+            _coverStudioState.value.copy(
+                selectedCategory = category
+            )
+    }
+
+    fun selectCoverTemplate(
+        template: CoverTemplate
+    ) {
+
+        _coverStudioState.value =
+            _coverStudioState.value.copy(
+                selectedTemplateId = template.id,
+                headlineText = template.defaultMainHeadline,
+                subHeadlineText = template.defaultSubHeadline,
+                badgeText = template.badgeText,
+                selectedAccentColor = template.accentColorHex,
+                selectedTextColor = template.textColorHex
+            )
+    }
+
+    fun updateCoverTexts(
+        headline: String,
+        subHeadline: String,
+        badge: String
+    ) {
+
+        _coverStudioState.value =
+            _coverStudioState.value.copy(
+                headlineText = headline,
+                subHeadlineText = subHeadline,
+                badgeText = badge
+            )
+    }
+
+    fun toggleShortsBadge(
+        enabled: Boolean
+    ) {
+        _coverStudioState.value =
+            _coverStudioState.value.copy(
+                isYoutubeShortsBadge = enabled
+            )
+    }
+
+    fun setCoverCustomImage(
+        uri: String?
+    ) {
+        _coverStudioState.value =
+            _coverStudioState.value.copy(
+                customImageUri = uri
+            )
+    }
+
+    fun setCoverColors(
+        accentColor: Long,
+        textColor: Long
+    ) {
+        _coverStudioState.value =
+            _coverStudioState.value.copy(
+                selectedAccentColor = accentColor,
+                selectedTextColor = textColor
+            )
+    }
+
+    fun generateAiCoverHeadline(
+        topic: String
+    ) {
+
+        if (topic.isBlank()) {
+            viewModelScope.launch {
+                _toastMessage.emit(
+                    "ابتدا موضوع ویدیو را وارد کنید."
+                )
+            }
+            return
+        }
+
+        _coverStudioState.value =
+            _coverStudioState.value.copy(
+                isAiGeneratingTitle = true
+            )
+
+        viewModelScope.launch {
+
+            val key =
+                appSettings.value.customApiKey
+
+            if (key.isNotBlank()) {
+
+                val result =
+                    GeminiApiService.generateContent(
+                        prompt = """
+                            برای موضوع «$topic»
+                            سه تیتر کوتاه و بسیار جذاب برای کاور
+                            ویدیوی کوتاه پیشنهاد بده.
+                            تیترها کلیک‌بیت مثبت، طبیعی و فارسی باشند.
+                        """.trimIndent(),
+                        customApiKey = key
+                    )
+
+                result.onSuccess { text ->
+
+                    val firstLine =
+                        text.lines()
+                            .firstOrNull {
+                                it.isNotBlank()
+                            }
+                            ?.trim()
+                            ?: "این ترفند رو از دست نده!"
+
+                    _coverStudioState.value =
+                        _coverStudioState.value.copy(
+                            headlineText = firstLine,
+                            isAiGeneratingTitle = false
+                        )
+                }.onFailure {
+
+                    useLocalCoverHeadline(topic)
+                }
+
+            } else {
+                useLocalCoverHeadline(topic)
+            }
+        }
+    }
+
+    private fun useLocalCoverHeadline(
+        topic: String
+    ) {
+
+        _coverStudioState.value =
+            _coverStudioState.value.copy(
+                headlineText =
+                    "۳ نکته مهم درباره $topic",
+                isAiGeneratingTitle = false
+            )
+    }
+
+    // =========================================================
+    // AI Assistant - Natural Chat
     // =========================================================
 
     fun setAiSubTab(tab: Int) {
-
         _aiState.value =
             _aiState.value.copy(
                 activeSubTab = tab
@@ -769,33 +1024,18 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun updateChatInput(text: String) {
-
         _aiState.value =
             _aiState.value.copy(
                 chatInput = text
             )
     }
 
-    /**
-     * پاسخ‌های کاملاً ساده و روزمره.
-     *
-     * این قسمت باعث می‌شود پیام‌هایی مثل:
-     * سلام
-     * خوبی؟
-     * یه سوال دارم
-     * ممنون
-     * خداحافظ
-     *
-     * به موتور تخصصی ریلز ارسال نشوند.
-     */
     private fun getNaturalLocalReply(
         message: String
     ): String? {
 
         val text =
-            message
-                .trim()
-                .lowercase()
+            message.trim().lowercase()
 
         return when {
 
@@ -803,55 +1043,43 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
                 Regex(
                     "^(سلام|سلاممم|درود|های|hello|hi)[!.، ؟? ]*$"
                 )
-            ) -> {
+            ) ->
                 "سلام دوست من! 👋😊\nخوش اومدی. بگو ببینم چطور می‌تونم کمکت کنم؟"
-            }
 
             text.contains("یه سوال دارم") ||
                     text.contains("یک سوال دارم") ||
                     text.contains("سؤال دارم") ||
-                    text.contains("یه سئوال دارم") -> {
+                    text.contains("یه سئوال دارم") ->
                 "حتماً 😊 بپرس، گوشم با توئه."
-            }
 
             text.matches(
                 Regex(
                     "^(خوبی|خوبی؟|چطوری|چطوری؟|چه خبر)[!.، ؟? ]*$"
                 )
-            ) -> {
+            ) ->
                 "مرسی که پرسیدی 😊 آماده‌ام کمکت کنم. بگو چه کاری داریم؟"
-            }
 
             text.matches(
                 Regex(
                     "^(ممنون|مرسی|دمت گرم|خیلی ممنون)[!.، ؟? ]*$"
                 )
-            ) -> {
+            ) ->
                 "خواهش می‌کنم ❤️ خوشحالم که تونستم کمکت کنم."
-            }
 
             text.matches(
                 Regex(
                     "^(خداحافظ|فعلاً|فعلا|بای|bye)[!.، ؟? ]*$"
                 )
-            ) -> {
+            ) ->
                 "فعلاً دوست من 👋 هر وقت برگشتی من اینجام."
-            }
 
             else -> null
         }
     }
 
-    /**
-     * تشخیص می‌دهد که پیام به حوزه تخصصی Reels Studio مربوط است یا خیر.
-     */
     private fun isReelsRelatedMessage(
         message: String
     ): Boolean {
-
-        val text =
-            message
-                .lowercase()
 
         val keywords =
             listOf(
@@ -892,43 +1120,40 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
                 "تبلیغ"
             )
 
+        val text =
+            message.lowercase()
+
         return keywords.any {
             text.contains(it)
         }
     }
 
-    /**
-     * ساخت context مکالمه.
-     *
-     * حداکثر ۲۰ پیام اخیر ارسال می‌شود تا مکالمه
-     * بیش از حد طولانی نشود.
-     */
     private fun buildChatHistory(
         messages: List<ChatMessage>,
         currentMessage: String
     ): String {
 
-        val previousMessages =
+        val previous =
             messages
                 .dropLast(1)
                 .takeLast(20)
 
-        if (previousMessages.isEmpty()) {
+        if (previous.isEmpty()) {
             return "هنوز مکالمه قبلی وجود ندارد."
         }
 
         return buildString {
 
-            previousMessages.forEach { message ->
+            previous.forEach { message ->
 
-                val role =
+                append(
                     if (message.isUser) {
                         "کاربر"
                     } else {
                         "دستیار"
                     }
+                )
 
-                append(role)
                 append(": ")
                 append(message.text)
                 append("\n\n")
@@ -939,21 +1164,11 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    /**
-     * ارسال پیام چت.
-     *
-     * تفاوت اصلی با نسخه قبلی:
-     *
-     * 1. پیام‌های ساده محلی پاسخ می‌گیرند.
-     * 2. Gemini تاریخچه مکالمه را دریافت می‌کند.
-     * 3. موضوعات تخصصی وارد حالت متخصص می‌شوند.
-     * 4. موضوعات عمومی مجبور به تبدیل شدن به سؤال ریلز نمی‌شوند.
-     */
     fun sendChatMessage(
         promptText: String = ""
     ) {
 
-        val messageToSend =
+        val message =
             promptText
                 .ifBlank {
                     _aiState.value.chatInput
@@ -961,7 +1176,7 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
                 .trim()
 
         if (
-            messageToSend.isBlank() ||
+            message.isBlank() ||
             _aiState.value.isChatTyping
         ) {
             return
@@ -969,20 +1184,15 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
 
         val userMessage =
             ChatMessage(
-                text = messageToSend,
+                text = message,
                 isUser = true
             )
 
-        val currentMessages =
-            _aiState.value.chatMessages
-                .toMutableList()
-                .apply {
-                    add(userMessage)
-                }
-
         _aiState.value =
             _aiState.value.copy(
-                chatMessages = currentMessages,
+                chatMessages =
+                    _aiState.value.chatMessages +
+                            userMessage,
                 chatInput = "",
                 isChatTyping = true,
                 errorMessage = null
@@ -992,16 +1202,10 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
 
             try {
 
-                // -------------------------------------------------
-                // پاسخ سریع برای پیام‌های کاملاً طبیعی
-                // -------------------------------------------------
+                val natural =
+                    getNaturalLocalReply(message)
 
-                val naturalReply =
-                    getNaturalLocalReply(
-                        messageToSend
-                    )
-
-                if (naturalReply != null) {
+                if (natural != null) {
 
                     delay(350)
 
@@ -1010,7 +1214,7 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
                             chatMessages =
                                 _aiState.value.chatMessages +
                                         ChatMessage(
-                                            text = naturalReply,
+                                            text = natural,
                                             isUser = false
                                         ),
                             isChatTyping = false
@@ -1019,159 +1223,92 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
                     return@launch
                 }
 
-                // -------------------------------------------------
-                // ساخت تاریخچه
-                // -------------------------------------------------
-
                 val history =
                     buildChatHistory(
-                        messages =
-                            _aiState.value.chatMessages,
-                        currentMessage =
-                            messageToSend
+                        _aiState.value.chatMessages,
+                        message
                     )
 
-                val isExpertTopic =
-                    isReelsRelatedMessage(
-                        messageToSend
-                    )
+                val expert =
+                    isReelsRelatedMessage(message)
 
-                // -------------------------------------------------
-                // Prompt اصلی
-                // -------------------------------------------------
-
-                val systemPrompt =
-
-                    if (isExpertTopic) {
+                val prompt =
+                    if (expert) {
 
                         """
-                        تو دستیار هوشمند حرفه‌ای اپلیکیشن Reels Studio هستی.
+                        تو دستیار هوشمند حرفه‌ای Reels Studio هستی.
 
-                        نقش تو:
-                        یک دستیار مکالمه‌ای طبیعی، دوستانه و متخصص در زمینه
-                        Instagram Reels، YouTube Shorts و تولید محتوا.
+                        مثل یک دستیار واقعی و طبیعی صحبت کن.
 
-                        قوانین بسیار مهم:
+                        اگر سؤال درباره ریلز، اینستاگرام،
+                        YouTube Shorts، تولید محتوا، قلاب،
+                        هوک، سناریو، کپشن، هشتگ، وایرال،
+                        رشد پیج یا فروش است، پاسخ تخصصی بده.
 
-                        1. مثل یک دستیار واقعی و طبیعی صحبت کن.
+                        اگر سؤال عمومی است، همان سؤال عمومی
+                        را پاسخ بده و آن را بی‌دلیل به ریلز
+                        مرتبط نکن.
 
-                        2. سؤال کاربر را دقیقاً همان‌طور که پرسیده پاسخ بده.
+                        از تاریخچه مکالمه برای درک منظور کاربر استفاده کن.
 
-                        3. اگر سؤال مربوط به ریلز، اینستاگرام، شورتز،
-                        قلاب، هوک، سناریو، کپشن، هشتگ، وایرال شدن،
-                        رشد پیج یا فروش است، پاسخ تخصصی و کاربردی بده.
+                        پاسخ فارسی، روان، دوستانه و کاربردی باشد.
 
-                        4. از تاریخچه مکالمه استفاده کن.
-
-                        5. اگر کاربر گفت «همین»، «این»، «اون»،
-                        «موضوع قبلی» یا عبارتی مشابه، منظور او را
-                        با توجه به مکالمه قبلی درک کن.
-
-                        6. سؤال را بی‌دلیل دوباره از کاربر نپرس،
-                        اگر پاسخ آن در تاریخچه وجود دارد.
-
-                        7. پاسخ‌ها فارسی، روان و طبیعی باشند.
-
-                        8. از ایموجی به اندازه مناسب استفاده کن.
-
-                        9. درباره الگوریتم اینستاگرام ادعاهای قطعی
-                        و غیرقابل اثبات نکن.
-
-                        10. پاسخ‌ها کاربردی باشند و از توضیحات
-                        بی‌دلیل طولانی پرهیز کن.
-
-                        تاریخچه مکالمه:
+                        تاریخچه:
                         $history
                         """.trimIndent()
 
                     } else {
 
                         """
-                        تو دستیار هوشمند و مکالمه‌ای Reels Studio هستی.
+                        تو یک دستیار مکالمه‌ای طبیعی و دوستانه هستی.
 
-                        مهم‌ترین وظیفه تو این است که مثل یک دستیار
-                        واقعی و طبیعی با کاربر صحبت کنی.
+                        سؤال کاربر را همان‌طور که پرسیده پاسخ بده.
+                        سؤال عمومی را به ریلز یا اینستاگرام ربط نده.
+                        اگر ادامه مکالمه قبلی است، از تاریخچه استفاده کن.
+                        پاسخ فارسی و طبیعی باشد.
 
-                        قوانین:
-
-                        1. سؤال کاربر را همان‌طور که هست پاسخ بده.
-
-                        2. اگر سؤال عمومی است، آن را به ریلز،
-                        اینستاگرام یا تولید محتوا ربط نده.
-
-                        3. فقط زمانی که موضوع سؤال مربوط به ریلز،
-                        تولید محتوا، شبکه‌های اجتماعی یا حوزه تخصصی
-                        برنامه شد، از تخصص خودت استفاده کن.
-
-                        4. از تاریخچه مکالمه برای درک منظور کاربر استفاده کن.
-
-                        5. اگر سؤال ادامه سؤال قبلی است،
-                        پاسخ را بر اساس همان context بده.
-
-                        6. فارسی روان و دوستانه صحبت کن.
-
-                        7. از پاسخ‌های خشک، رباتیک و قالبی پرهیز کن.
-
-                        8. پاسخ غیرضروری را طولانی نکن.
-
-                        تاریخچه مکالمه:
+                        تاریخچه:
                         $history
                         """.trimIndent()
                     }
 
-                // -------------------------------------------------
-                // Gemini
-                // -------------------------------------------------
-
-                val customKey =
+                val key =
                     appSettings.value.customApiKey
 
-                if (customKey.isNotBlank()) {
+                if (key.isNotBlank()) {
 
-                    val geminiResult =
+                    val result =
                         GeminiApiService.generateContent(
-                            prompt = systemPrompt,
-                            customApiKey = customKey
+                            prompt = prompt,
+                            customApiKey = key
                         )
 
-                    geminiResult.fold(
-
+                    result.fold(
                         onSuccess = { reply ->
-
-                            val cleanReply =
-                                reply
-                                    .trim()
-                                    .ifBlank {
-                                        "متأسفم، این بار نتونستم پاسخ مناسبی تولید کنم. دوباره امتحان کن."
-                                    }
 
                             _aiState.value =
                                 _aiState.value.copy(
                                     chatMessages =
                                         _aiState.value.chatMessages +
                                                 ChatMessage(
-                                                    text = cleanReply,
+                                                    text =
+                                                        reply.trim().ifBlank {
+                                                            "متأسفم، این بار نتونستم پاسخ مناسبی تولید کنم."
+                                                        },
                                                     isUser = false
                                                 ),
-                                    isChatTyping = false,
-                                    errorMessage = null
+                                    isChatTyping = false
                                 )
                         },
-
                         onFailure = {
 
-                            val fallbackReply =
-
-                                if (isExpertTopic) {
-
+                            val fallback =
+                                if (expert) {
                                     ReelsAiExpert.answerQuery(
-                                        messageToSend
+                                        message
                                     )
-
                                 } else {
-
-                                    "در حال حاضر اتصال به هوش مصنوعی ابری برقرار نیست. " +
-                                            "اگر سؤال دیگری داری، دوباره امتحان کن 🙏"
+                                    "در حال حاضر اتصال به هوش مصنوعی ابری برقرار نیست. دوباره امتحان کن 🙏"
                                 }
 
                             _aiState.value =
@@ -1179,33 +1316,22 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
                                     chatMessages =
                                         _aiState.value.chatMessages +
                                                 ChatMessage(
-                                                    text = fallbackReply,
+                                                    text = fallback,
                                                     isUser = false
                                                 ),
-                                    isChatTyping = false,
-                                    errorMessage = null
+                                    isChatTyping = false
                                 )
                         }
                     )
 
                 } else {
 
-                    // -------------------------------------------------
-                    // Offline mode
-                    // -------------------------------------------------
-
                     delay(450)
 
-                    val fallbackReply =
-
-                        if (isExpertTopic) {
-
-                            ReelsAiExpert.answerQuery(
-                                messageToSend
-                            )
-
+                    val fallback =
+                        if (expert) {
+                            ReelsAiExpert.answerQuery(message)
                         } else {
-
                             "حتماً 😊 بگو دقیقاً درباره چی می‌خوای بدونی؟"
                         }
 
@@ -1214,11 +1340,10 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
                             chatMessages =
                                 _aiState.value.chatMessages +
                                         ChatMessage(
-                                            text = fallbackReply,
+                                            text = fallback,
                                             isUser = false
                                         ),
-                            isChatTyping = false,
-                            errorMessage = null
+                            isChatTyping = false
                         )
                 }
 
@@ -1245,7 +1370,6 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
     // =========================================================
 
     fun setAiMode(mode: String) {
-
         _aiState.value =
             _aiState.value.copy(
                 selectedMode = mode
@@ -1257,7 +1381,6 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
         audience: String,
         tone: String
     ) {
-
         _aiState.value =
             _aiState.value.copy(
                 topicInput = topic,
@@ -1268,7 +1391,8 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
 
     fun generateAiContent() {
 
-        val state = _aiState.value
+        val state =
+            _aiState.value
 
         val topic =
             state.topicInput.trim()
@@ -1285,217 +1409,175 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         _aiState.value =
-            _aiState.value.copy(
+            state.copy(
                 isGenerating = true,
                 errorMessage = null
             )
 
         val prompt =
-
             when (state.selectedMode) {
 
-                "HOOK_GENERATOR" -> """
-
-                    به عنوان متخصص تولید محتوای کوتاه،
-                    برای موضوع «$topic» دقیقاً ۵ قلاب جذاب
-                    برای ۳ ثانیه اول ویدیو بنویس.
-
-                    مخاطب هدف:
-                    ${state.targetAudience.ifBlank {
-                        "عموم کاربران اینستاگرام"
-                    }}
-
-                    لحن:
-                    ${state.tone}
-
-                    برای هر قلاب:
-                    - متن قلاب
-                    - دلیل جذابیت
-                    - ایده تصویر یا اجرای ثانیه اول
-
-                    پاسخ کاملاً فارسی باشد.
-
-                """.trimIndent()
-
-                "SCRIPT_WRITER" -> """
-
-                    یک سناریوی کامل و زیر ۴۵ ثانیه
-                    برای یک ویدیوی کوتاه بنویس.
-
-                    موضوع:
-                    $topic
+                "HOOK_GENERATOR" ->
+                    """
+                    برای موضوع «$topic»
+                    دقیقاً ۵ قلاب جذاب برای سه ثانیه اول ویدیو بنویس.
 
                     مخاطب:
-                    ${state.targetAudience.ifBlank {
-                        "عموم کاربران"
-                    }}
+                    ${state.targetAudience.ifBlank { "عموم کاربران" }}
 
                     لحن:
                     ${state.tone}
 
-                    سناریو شامل:
+                    برای هر قلاب دلیل جذابیت و ایده اجرای تصویری بده.
+                    پاسخ فارسی باشد.
+                    """.trimIndent()
 
-                    ۱. قلاب ۳ ثانیه اول
-                    ۲. بدنه اصلی
-                    ۳. سه نکته کلیدی
-                    ۴. CTA نهایی
-
-                    پاسخ کاملاً فارسی باشد.
-
-                """.trimIndent()
-
-                "HASHTAG_FINDER" -> """
-
-                    برای موضوع «$topic» یک مجموعه هشتگ
-                    مناسب و مرتبط پیشنهاد بده.
+                "SCRIPT_WRITER" ->
+                    """
+                    یک سناریوی کامل و زیر ۴۵ ثانیه برای موضوع
+                    «$topic» بنویس.
 
                     شامل:
+                    ۱. قلاب
+                    ۲. بدنه
+                    ۳. سه نکته کلیدی
+                    ۴. CTA
 
-                    - هشتگ‌های عمومی
-                    - هشتگ‌های تخصصی
-                    - هشتگ‌های مرتبط با نیچ
-
-                    همچنین یک کپشن کوتاه و جذاب برای ویدیو بنویس.
-
-                """.trimIndent()
-
-                else -> """
-
-                    یک کپشن جذاب برای ریلز بنویس.
-
-                    موضوع:
-                    $topic
+                    مخاطب:
+                    ${state.targetAudience.ifBlank { "عموم کاربران" }}
 
                     لحن:
                     ${state.tone}
 
-                    کپشن باید:
-                    - شروع کنجکاوی‌برانگیز داشته باشد
-                    - کوتاه و خوانا باشد
-                    - مخاطب را به تعامل دعوت کند
+                    پاسخ فارسی باشد.
+                    """.trimIndent()
 
-                """.trimIndent()
+                "HASHTAG_FINDER" ->
+                    """
+                    برای موضوع «$topic»
+                    هشتگ‌های عمومی، تخصصی و مرتبط با نیچ
+                    پیشنهاد بده و یک کپشن کوتاه هم بنویس.
+                    """.trimIndent()
+
+                else ->
+                    """
+                    برای موضوع «$topic»
+                    یک کپشن جذاب برای ریلز بنویس.
+
+                    لحن:
+                    ${state.tone}
+
+                    کپشن باید کوتاه، طبیعی و تعامل‌محور باشد.
+                    """.trimIndent()
             }
 
         viewModelScope.launch {
 
-            val customKey =
+            val key =
                 appSettings.value.customApiKey
 
-            if (customKey.isNotBlank()) {
+            if (key.isNotBlank()) {
 
                 val result =
                     GeminiApiService.generateContent(
                         prompt = prompt,
-                        customApiKey = customKey
+                        customApiKey = key
                     )
 
                 result.fold(
-
-                    onSuccess = { responseText ->
+                    onSuccess = { response ->
 
                         _aiState.value =
                             _aiState.value.copy(
                                 isGenerating = false,
-                                aiResult = responseText,
+                                aiResult = response,
                                 errorMessage = null
                             )
-
-                        _toastMessage.emit(
-                            "محتوای هوش مصنوعی با موفقیت تولید شد ✨"
-                        )
                     },
-
                     onFailure = {
 
-                        val fallbackContent =
-
-                            when (state.selectedMode) {
-
-                                "HOOK_GENERATOR" ->
-                                    ReelsAiExpert.generateHooksForTopic(
-                                        topic,
-                                        state.targetAudience,
-                                        state.tone
-                                    )
-
-                                "SCRIPT_WRITER" ->
-                                    ReelsAiExpert.generateScriptForTopic(
-                                        topic,
-                                        state.targetAudience,
-                                        state.tone
-                                    )
-
-                                "HASHTAG_FINDER" ->
-                                    ReelsAiExpert.generateHashtagsForTopic(
-                                        topic
-                                    )
-
-                                else ->
-                                    ReelsAiExpert.generateCaptionForTopic(
-                                        topic,
-                                        state.tone
-                                    )
-                            }
+                        val fallback =
+                            generateLocalAiContent(
+                                state.selectedMode,
+                                topic,
+                                state.targetAudience,
+                                state.tone
+                            )
 
                         _aiState.value =
                             _aiState.value.copy(
                                 isGenerating = false,
-                                aiResult = fallbackContent,
+                                aiResult = fallback,
                                 errorMessage = null
                             )
-
-                        _toastMessage.emit(
-                            "محتوای هوش مصنوعی آماده شد ✨"
-                        )
                     }
                 )
 
             } else {
 
-                delay(500)
+                delay(300)
 
-                val generated =
-
-                    when (state.selectedMode) {
-
-                        "HOOK_GENERATOR" ->
-                            ReelsAiExpert.generateHooksForTopic(
-                                topic,
-                                state.targetAudience,
-                                state.tone
-                            )
-
-                        "SCRIPT_WRITER" ->
-                            ReelsAiExpert.generateScriptForTopic(
-                                topic,
-                                state.targetAudience,
-                                state.tone
-                            )
-
-                        "HASHTAG_FINDER" ->
-                            ReelsAiExpert.generateHashtagsForTopic(
-                                topic
-                            )
-
-                        else ->
-                            ReelsAiExpert.generateCaptionForTopic(
-                                topic,
-                                state.tone
-                            )
-                    }
+                val fallback =
+                    generateLocalAiContent(
+                        state.selectedMode,
+                        topic,
+                        state.targetAudience,
+                        state.tone
+                    )
 
                 _aiState.value =
                     _aiState.value.copy(
                         isGenerating = false,
-                        aiResult = generated,
-                        errorMessage = null
+                        aiResult = fallback
                     )
-
-                _toastMessage.emit(
-                    "محتوا توسط موتور هوشمند تولید شد ✨"
-                )
             }
+        }
+    }
+
+    private fun generateLocalAiContent(
+        mode: String,
+        topic: String,
+        audience: String,
+        tone: String
+    ): String {
+
+        return when (mode) {
+
+            "HOOK_GENERATOR" ->
+                """
+                ۱. باور نمی‌کنی درباره $topic این نکته وجود داشته باشه!
+                ۲. اگر درباره $topic این اشتباه رو می‌کنی، همین الان ببین.
+                ۳. قبل از اینکه سراغ $topic بری، اینو بدون.
+                ۴. فقط ۳۰ ثانیه وقت بذار تا نکته مهم $topic رو بفهمی.
+                ۵. بیشتر مردم درباره $topic این قسمت رو نمی‌دونن.
+                """.trimIndent()
+
+            "SCRIPT_WRITER" ->
+                """
+                قلاب:
+                بیشتر مردم درباره $topic یک اشتباه مهم انجام می‌دهند.
+
+                بدنه:
+                اول مشکل را مشخص کن، بعد راه‌حل را ساده و مرحله‌به‌مرحله توضیح بده.
+
+                نکته ۱:
+                از یک شروع واضح استفاده کن.
+
+                نکته ۲:
+                نتیجه را سریع نشان بده.
+
+                نکته ۳:
+                در پایان مخاطب را به تعامل دعوت کن.
+
+                CTA:
+                اگر این نکته برات مفید بود ذخیره‌اش کن.
+                """.trimIndent()
+
+            "HASHTAG_FINDER" ->
+                "#$topic #تولید_محتوا #ریلز #اینستاگرام #وایرال"
+
+            else ->
+                "اگر درباره $topic کنجکاوی، این ویدیو رو تا آخر ببین 👀"
         }
     }
 
@@ -1503,15 +1585,17 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
     // Settings
     // =========================================================
 
-    fun toggleDarkMode(enabled: Boolean) {
+    fun toggleDarkMode(
+        enabled: Boolean
+    ) {
 
         viewModelScope.launch {
 
             val current =
-                settingsDao.getSettingsDirect()
+                dao.getSettingsDirect()
                     ?: AppSettingsEntity()
 
-            settingsDao.saveSettings(
+            dao.saveSettings(
                 current.copy(
                     isDarkMode = enabled
                 )
@@ -1519,15 +1603,17 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun setFontScale(scale: Float) {
+    fun setFontScale(
+        scale: Float
+    ) {
 
         viewModelScope.launch {
 
             val current =
-                settingsDao.getSettingsDirect()
+                dao.getSettingsDirect()
                     ?: AppSettingsEntity()
 
-            settingsDao.saveSettings(
+            dao.saveSettings(
                 current.copy(
                     fontScale = scale
                 )
@@ -1535,15 +1621,17 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun toggleRealAds(enabled: Boolean) {
+    fun toggleRealAds(
+        enabled: Boolean
+    ) {
 
         viewModelScope.launch {
 
             val current =
-                settingsDao.getSettingsDirect()
+                dao.getSettingsDirect()
                     ?: AppSettingsEntity()
 
-            settingsDao.saveSettings(
+            dao.saveSettings(
                 current.copy(
                     isRealAdsEnabled = enabled
                 )
@@ -1551,15 +1639,17 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun saveCustomApiKey(key: String) {
+    fun saveCustomApiKey(
+        key: String
+    ) {
 
         viewModelScope.launch {
 
             val current =
-                settingsDao.getSettingsDirect()
+                dao.getSettingsDirect()
                     ?: AppSettingsEntity()
 
-            settingsDao.saveSettings(
+            dao.saveSettings(
                 current.copy(
                     customApiKey = key.trim()
                 )
@@ -1567,37 +1657,6 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
 
             _toastMessage.emit(
                 "کلید اختصاصی Gemini ذخیره شد 🔑"
-            )
-        }
-    }
-
-    // =========================================================
-    // Clear Local Data
-    // =========================================================
-
-    fun clearAllSavedData() {
-
-        viewModelScope.launch {
-
-            scriptDao.deleteAll()
-
-            val current =
-                settingsDao.getSettingsDirect()
-                    ?: AppSettingsEntity()
-
-            settingsDao.saveSettings(
-                current.copy(
-                    unlockedHookIds = "",
-                    completedPlannerDays = "",
-                    isVipUser = false
-                )
-            )
-
-            _vipState.value =
-                VipUiState()
-
-            _toastMessage.emit(
-                "تمام داده‌های محلی برنامه ریست شدند"
             )
         }
     }
