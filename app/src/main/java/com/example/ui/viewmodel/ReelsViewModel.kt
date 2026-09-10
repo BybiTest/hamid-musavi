@@ -12,7 +12,6 @@ import com.example.data.model.EngagementResult
 import com.example.data.model.HookCategory
 import com.example.data.model.HookItem
 import com.example.data.model.ScriptTemplate
-import com.example.data.model.ViralHook
 import com.example.data.repository.ReelsRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -22,17 +21,18 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 data class HooksUiState(
     val allHooks: List<HookItem> = emptyList(),
-    val selectedCategory: HookCategory? = null,
+    val selectedCategory: HookCategory = HookCategory.ALL,
     val searchQuery: String = "",
     val showOnlyFavorites: Boolean = false,
-    val favoriteHookIds: Set<Int> = emptySet(),
-    val unlockedHookIds: Set<Int> = emptySet(),
-    val isVipActive: Boolean = false
+    val favoriteIds: Set<String> = emptySet(),
+    val unlockedHookIds: Set<String> = emptySet(),
+    val isVipUser: Boolean = false
 )
 
 data class ScriptMakerUiState(
@@ -55,11 +55,6 @@ data class CalculatorUiState(
     val result: EngagementResult? = null
 )
 
-data class SettingsState(
-    val isDarkMode: Boolean = false,
-    val fontScale: Float = 1.0f
-)
-
 class ReelsViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository: ReelsRepository
@@ -69,32 +64,38 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
         repository = ReelsRepository(db.reelsDao())
     }
 
+    // Active Navigation Tab
     private val _currentTab = MutableStateFlow(AppTab.HOOKS)
     val currentTab: StateFlow<AppTab> = _currentTab.asStateFlow()
 
+    // Snackbars / Feedback Messages
     private val _toastMessage = MutableSharedFlow<String>()
     val toastMessage: SharedFlow<String> = _toastMessage.asSharedFlow()
 
+    // VIP State Flow from DB
     val vipState: StateFlow<VipStateEntity> = repository.vipState.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5000),
         VipStateEntity()
     )
 
+    // Saved Scripts Flow from DB
     val savedScripts: StateFlow<List<SavedScriptEntity>> = repository.allSavedScripts.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5000),
         emptyList()
     )
 
+    // Planner Progress Flow from DB
     val plannerProgress: StateFlow<Map<Int, Boolean>> = repository.plannerProgress.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5000),
         emptyMap()
     )
 
-    private val _selectedCategory = MutableStateFlow<HookCategory?>(null)
-    val selectedCategory: StateFlow<HookCategory?> = _selectedCategory.asStateFlow()
+    // Hooks State
+    private val _selectedCategory = MutableStateFlow(HookCategory.ALL)
+    val selectedCategory: StateFlow<HookCategory> = _selectedCategory.asStateFlow()
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
@@ -102,19 +103,15 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
     private val _showOnlyFavorites = MutableStateFlow(false)
     val showOnlyFavorites: StateFlow<Boolean> = _showOnlyFavorites.asStateFlow()
 
-    private val _favoriteHookIds = MutableStateFlow<Set<Int>>(emptySet())
-    val favoriteHookIds: StateFlow<Set<Int>> = _favoriteHookIds.asStateFlow()
-
-    private val _unlockedHookIds = MutableStateFlow<Set<Int>>(emptySet())
-    val unlockedHookIds: StateFlow<Set<Int>> = _unlockedHookIds.asStateFlow()
-
-    private val _settingsState = MutableStateFlow(SettingsState())
-    val settingsState: StateFlow<SettingsState> = _settingsState.asStateFlow()
+    val favoriteIds: StateFlow<Set<String>> = repository.favoriteHookIds.combine(repository.favoriteHookIds) { ids, _ ->
+        ids.toSet()
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
     val allHooks: List<HookItem> = repository.getAllHooks()
     val allTemplates: List<ScriptTemplate> = repository.getAllTemplates()
     val allPlannerDays: List<ContentDayPlan> = repository.getAllPlannerDays()
 
+    // Script Maker State
     private val _scriptMakerState = MutableStateFlow(
         ScriptMakerUiState(
             templates = allTemplates,
@@ -123,9 +120,11 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
     )
     val scriptMakerState: StateFlow<ScriptMakerUiState> = _scriptMakerState.asStateFlow()
 
+    // Calculator State
     private val _calculatorState = MutableStateFlow(CalculatorUiState())
     val calculatorState: StateFlow<CalculatorUiState> = _calculatorState.asStateFlow()
 
+    // Rewarded Ad Simulation Dialog State
     private val _rewardedAdForHook = MutableStateFlow<HookItem?>(null)
     val rewardedAdForHook: StateFlow<HookItem?> = _rewardedAdForHook.asStateFlow()
 
@@ -135,11 +134,13 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
     private val _adCountdown = MutableStateFlow(5)
     val adCountdown: StateFlow<Int> = _adCountdown.asStateFlow()
 
+    // Checkout Confirmation Dialog
     data class CheckoutPlan(val title: String, val price: String, val days: Int)
     private val _selectedCheckoutPlan = MutableStateFlow<CheckoutPlan?>(null)
     val selectedCheckoutPlan: StateFlow<CheckoutPlan?> = _selectedCheckoutPlan.asStateFlow()
 
     init {
+        // Initialize default script
         allTemplates.firstOrNull()?.let { selectTemplate(it) }
         calculateEngagement()
     }
@@ -148,7 +149,7 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
         _currentTab.value = tab
     }
 
-    fun setCategory(category: HookCategory?) {
+    fun setCategory(category: HookCategory) {
         _selectedCategory.value = category
     }
 
@@ -160,31 +161,23 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
         _showOnlyFavorites.value = !_showOnlyFavorites.value
     }
 
-    fun toggleFavoriteHook(hookId: Int) {
+    fun toggleFavoriteHook(hookId: String) {
         viewModelScope.launch {
-            val current = _favoriteHookIds.value.toMutableSet()
-            if (current.contains(hookId)) {
-                current.remove(hookId)
-            } else {
-                current.add(hookId)
-            }
-            _favoriteHookIds.value = current
-            _toastMessage.emit(if (current.contains(hookId)) "به علاقه‌مندی‌ها اضافه شد ★" else "از علاقه‌مندی‌ها حذف شد")
+            repository.toggleFavorite(hookId, favoriteIds.value.toList())
+            val isFav = !favoriteIds.value.contains(hookId)
+            _toastMessage.emit(if (isFav) "به قلاب‌های ذخیره‌شده اضافه شد ★" else "از ذخیره‌شده‌ها حذف شد")
         }
     }
 
     fun isHookUnlocked(hook: HookItem): Boolean {
         if (!hook.isVipOnly) return true
         if (vipState.value.isVipActive) return true
-        return _unlockedHookIds.value.contains(hook.id.hashCode()) 
+        val unlocked = vipState.value.temporaryUnlockedHooks.split(",")
+        return unlocked.contains(hook.id)
     }
 
-    fun requestUnlockHook(hook: HookItem) {
+    fun promptWatchRewardedAd(hook: HookItem) {
         _rewardedAdForHook.value = hook
-    }
-
-    fun requestUnlockHook(viralHook: ViralHook) {
-        _rewardedAdForHook.value = allHooks.find { it.id.hashCode() == viralHook.id }
     }
 
     fun dismissRewardedAdPrompt() {
@@ -202,16 +195,15 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
                 _adCountdown.value = i
                 delay(1000)
             }
-            val currentUnlocked = _unlockedHookIds.value.toMutableSet()
-            currentUnlocked.add(hook.id.hashCode())
-            _unlockedHookIds.value = currentUnlocked
-            
+            // Reward user
+            repository.unlockHookWithRewardedAd(hook.id, vipState.value)
             _isAdWatching.value = false
             _rewardedAdForHook.value = null
             _toastMessage.emit("تبریک! قلاب وایرال برای شما باز شد 🎁")
         }
     }
 
+    // Script Maker functions
     fun selectTemplate(template: ScriptTemplate) {
         _scriptMakerState.value = _scriptMakerState.value.copy(
             selectedTemplate = template,
@@ -239,10 +231,21 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
 
         val hook = template.hookTemplate
             .replace("[محصول یا سرویس]", state.customTopic.ifBlank { "محصول شما" })
+            .replace("[مهارت اصلی]", state.customTopic.ifBlank { "مهارت جدید" })
+
         val body = template.bodyTemplate
-            .replace("[علت تفاوت کیفیت یا تامین مستقیم]", state.customBenefit.ifBlank { "کیفیت بالا" })
+            .replace("[علت تفاوت کیفیت یا تامین مستقیم]", state.customBenefit.ifBlank { "کیفیت بالا و حذف واسطه" })
+            .replace("[ویژگی کلیدی یا گارانتی محصول]", state.customBenefit.ifBlank { "ضمانت اختصاصی" })
+            .replace("[بزرگترین ضرر مشتری]", state.customObstacle.ifBlank { "هزینه اضافی و پشیمانی" })
+            .replace("[اشتباه رایج مثل هشتگ نامربوط یا شروع بدون قلاب]", state.customObstacle.ifBlank { "شروع بدون قلاب شوکه‌کننده" })
+            .replace("[نام ابزار ۱]", "CapCut / AutoCap")
+            .replace("[نام ابزار ۲]", "Adobe Podcast AI")
+            .replace("[نام ابزار ۳]", "Reels Studio")
+            .replace("[نتیجه ملموس]", state.customBenefit.ifBlank { "رشد ۳ برابری فروش و بازدید" })
+
         val cta = state.customCta.ifBlank { template.ctaTemplate }
-        val full = "🎬 [قلاب]:\n$hook\n\n📌 [بدنه]:\n$body\n\n🚀 [CTA]:\n$cta"
+
+        val full = "🎬 [قلاب ۳ ثانیه‌ای اول ویدیو]:\n$hook\n\n📌 [بدنه اصلی و ارائه ارزش]:\n$body\n\n🚀 [کال تو اکشن و دعوت به اقدام نهایی]:\n$cta"
 
         _scriptMakerState.value = _scriptMakerState.value.copy(generatedScript = full)
     }
@@ -252,7 +255,7 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
             val state = _scriptMakerState.value
             val title = state.selectedTemplate?.title ?: "سناریوی ریلز"
             repository.saveScript(title, state.generatedScript)
-            _toastMessage.emit("سناریو ذخیره شد ✓")
+            _toastMessage.emit("سناریو با موفقیت در بخش «سناریوهای من» ذخیره شد ✓")
         }
     }
 
@@ -263,14 +266,16 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // Planner functions
     fun togglePlannerDay(dayNumber: Int) {
         viewModelScope.launch {
             val current = plannerProgress.value[dayNumber] ?: false
             repository.togglePlannerDay(dayNumber, current)
-            _toastMessage.emit(if (!current) "روز $dayNumber تکمیل شد! 🎉" else "وضعیت روز $dayNumber ریست شد")
+            _toastMessage.emit(if (!current) "روز $dayNumber با موفقیت تکمیل شد! آفرین 🎉" else "وضعیت روز $dayNumber ریست شد")
         }
     }
 
+    // Calculator functions
     fun updateCalculatorFields(followers: String, likes: String, comments: String, saves: String, shares: String) {
         _calculatorState.value = _calculatorState.value.copy(
             followers = followers.filter { it.isDigit() },
@@ -294,6 +299,7 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
         _calculatorState.value = _calculatorState.value.copy(result = result)
     }
 
+    // VIP Store & Checkout
     fun openCheckout(title: String, price: String, days: Int) {
         _selectedCheckoutPlan.value = CheckoutPlan(title, price, days)
     }
@@ -307,15 +313,8 @@ class ReelsViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             repository.activateVip(plan.title, plan.days)
             _selectedCheckoutPlan.value = null
-            _toastMessage.emit("اشتراک ${plan.title} فعال شد! 👑")
+            _toastMessage.emit("اشتراک ${plan.title} با موفقیت فعال شد! به خانواده VIP خوش آمدید 👑")
         }
     }
-
-    fun toggleDarkMode(enabled: Boolean) {
-        _settingsState.value = _settingsState.value.copy(isDarkMode = enabled)
-    }
-
-    fun setFontScale(scale: Float) {
-        _settingsState.value = _settingsState.value.copy(fontScale = scale)
-    }
 }
+Copied!
